@@ -1,3 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
+
+* {
+    font-family: "Josefin Sans", sans-serif;
+}
+
 .navbar {
     background-color: #FECE6A !important;
+}
+
+.nav-link {
+    color: #315DB4;
+    font-weight: 500;
+}
+
+.actived {
+    color: #06206C;
+    font-weight: 600;
+}
+
+.beranda-title {
+    color: #06206C;
+    font-size: 60px;
+    font-weight: 700;
+    
+}
+
+.beranda-title-title {
+    color: #315DB4;
+    font-size: 60px;
+    font-weight: 700;
+}
+
+.tentang-kami-section {
+    background-color: #06206C;
+}
+
+.tentang-description {
+    text-align: justify;
+    font-size: 20px;
+}
+
+.tentang-title {
+    color: #FECE6A;
+    width: fit-content;
+    position: relative;
+}
+
+.tentang-title::after {
+    content: "";
+    width: 100%;
+    height: 7px;
+    
+    background-color: #315DB4;
+    
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+}
+
+.btn-warning {
+    background-color: #FECE6A;
+    color: #0F4457;
+    font-weight: 600;
+    border-color: #FECE6A;
+    border-width: 3px;
+}
+
+.btn-outline-warning {
+    color: #0F4457;
+    border-color: #FECE6A;
+    border-width: 3px;
+    font-weight: 600;
+
+}
+
+.btn-outline-warning:hover {
+    background-color: #FECE6A;
+    border-color: #FECE6A;
+}
+
+.statistic-section {
+    background-color: #FECE6A;
+}
+
+.statistic-title {
+    color: #0F4457;
+    font-weight: 600;
+}
+
+.statistic-number {
+    font-weight: 700;
 }
