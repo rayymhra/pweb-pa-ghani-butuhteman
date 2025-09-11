@@ -222,7 +222,7 @@
             </div>
             
             <div class="text-end mt-4">
-                <a href="" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
+                <a href="cari-teman/index.html" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
             </div>
         </div>
         

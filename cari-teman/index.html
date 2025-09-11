@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cari Teman - Butuh Teman</title>
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <img src="assets/img/logo butuh teman.png" alt="logo" width="50">
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="#home">BERANDA</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#tentang">TENTANG</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link actived" href="#cari-teman">CARI TEMAN</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#komunitas">KOMUNITAS</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Section Cari Teman -->
+  <section id="cari-teman" class="cari-teman">
+    <div class="container text-center">
+      <h1>CARI TEMAN</h1>
+      <p>Temukan teman yang kalian cari disini!</p>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Cari berdasarkan tags">
+        <button onclick="searchTeman()">Cari</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grid Cards -->
+  <div class="container pb-5">
+    <div class="row g-4" id="temanList">
+      <!-- Card 1 -->
+      <div class="col-md-3 teman-card" data-nama="Chi Cheng">
+        <div class="card">
+          <img src="assets/img/chi cheng.png" alt="Chi Cheng">
+          <div class="card-body">
+            <h5 class="card-title">Chi Cheng</h5>
+            <p class="card-text">Gue suka motoran, siap nemenin lo motoran kapanpun. tingal infoin aja waktu dan lokasinya.</p>
+            <p class="card-text">Jakarta, Sudirman</p>
+            <p class="card-text">Motor</p>
+            
+          </div>
+          <div class="card-footer d-flex justify-content-between">
+            <button class="btn btn-primary">Simpan</button>
+            <button class="btn btn-primary">Booking</button>
+             <button class="btn btn-primary">chat</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="col-md-3 teman-card" data-nama="Wu Suowei">
+        <div class="card">
+          <img src="assets/img/Wu Suowei.png.jpeg" class="card-img-top" alt="Wu Suowei">
+          <div class="card-body">
+            <h5 class="card-title">Wu Suowei</h5>
+            <p class="card-text">Gue suka masak dan yapping. kalo lu butuh temen curhat bisa banget ke gue aja ntar gue masakin fav food lu.</p>
+             <p class="card-text">Jakarta, Sudirman</p>
+             <p class="card-text">Masak, Ngobrol</p>
+          </div>
+<div class="card-footer d-flex justify-content-between">
+            <button class="btn btn-primary">Simpan</button>
+            <button class="btn btn-primary">Booking</button>
+             <button class="btn btn-primary">chat</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="col-md-3 teman-card" data-nama="Guo Chong Wu">
+        <div class="card">
+          <img src="assets/img/Guo Chengyu.png.jpeg" class="card-img-top" alt="Guo Chong Wu">
+          <div class="card-body">
+            <h5 class="card-title">Guo Chong Wu</h5>
+            <p class="card-text">Gue suka mancing, siap nemenin lo mancing kapanpun. tingal infoin aja waktu dan lokasinya.</p>
+             <p class="card-text">Jakarta, Sudirman</p>
+              <p class="card-text">Mancing</p>
+           </div>
+        <div class="card-footer d-flex justify-content-between">
+            <button class="btn btn-primary">Simpan</button>
+            <button class="btn btn-primary">Booking</button>
+             <button class="btn btn-primary">chat</button>
+          </div>
+        </div>
+      </div>
+<!-- Card 4 -->
+      <div class="col-md-3 teman-card" data-nama="Wu Suowei">
+        <div class="card">
+          <img src="assets/img/xiaoshuai.png" class="card-img-top" alt="Wu Suowei">
+          <div class="card-body">
+            <h5 class="card-title">Jiang Xiaoshuai</h5>
+            <p class="card-text">Gue suka banget ngobrol, apalagi kalo gosip. kalo lo butuh temen ngegossip, bisa banget ama gue.</p>
+             <p class="card-text">Jakarta, Sudirman</p>
+             <p class="card-text">Ngobrol</p>
+          </div>
+<div class="card-footer d-flex justify-content-between">
+            <button class="btn btn-primary">Simpan</button>
+            <button class="btn btn-primary">Booking</button>
+             <button class="btn btn-primary">chat</button>
+          </div>
+        </div>
+      </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="row gy-4">
+        <div class="col-md-3">
+          <h4>BUTUH TEMAN</h4>
+          <p>Website untuk mencari teman baru dan membangun komunitas.</p>
+        </div>
+        <div class="col-md-3">
+          <h4>Navigasi</h4>
+          <p><a href="#">Home</a></p>
+          <p><a href="#">Tentang</a></p>
+          <p><a href="#">Cari Teman</a></p>
+          <p><a href="#">Komunitas</a></p>
+        </div>
+        <div class="col-md-3">
+          <h4>Kontak Kami</h4>
+          <p>Cirebon, Indonesia</p>
+          <p>+62 853 6002 6250</p>
+          <p>butuhteman@gmail.com</p>
+        </div>
+        <div class="col-md-3">
+          <h4>Ikuti Kami</h4>
+          <p>Instagram | Facebook | Twitter</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <div class="copyright">
+    © 2025 BUTUH TEMAN | All Rights Reserved
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Custom JS -->
+  <script src="assets/js/script.js"></script>
+</body>
+</html>
