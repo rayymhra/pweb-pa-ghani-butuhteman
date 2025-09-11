@@ -53,7 +53,7 @@
                     
                     <div class="btn-beranda mt-5">
                         <a href="" class="btn btn-outline-warning">Lihat Teman</a>
-                        <a href="" class="btn btn-warning">Gabung Jadi Teman</a>
+                        <a href="auth/login.php" class="btn btn-warning">Gabung Jadi Teman</a>
                     </div>
                     
                 </div>
@@ -318,7 +318,7 @@
 </div>
 
 <div class="text-end mt-4">
-    <a href="" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
+    <a href="komunitas/index.html" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
 </div>
 </div>
 </div>
