@@ -1,187 +1,207 @@
-<?php
-session_start();
-require 'config.php';
-
-// --- LOGIN CHECK ---
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
-$user_id = $_SESSION['user_id'];
-
-// --- AMBIL DATA USER + PROFIL ---
-$sql = "SELECT u.*, f.bio, f.hourly_rate, f.location, f.tags 
-        FROM users u 
-        LEFT JOIN friend_profiles f ON u.id = f.user_id
-        WHERE u.id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
-
-if (!$user) {
-    echo "User tidak ditemukan!";
-    exit;
-}
-
-// --- AMBIL DATA REVIEW ---
-$sql_reviews = "SELECT AVG(rating) as avg_rating, COUNT(*) as total_reviews 
-                FROM reviews r 
-                JOIN bookings b ON r.booking_id = b.id
-                WHERE b.friend_id = ?";
-$stmt2 = $conn->prepare($sql_reviews);
-$stmt2->bind_param("i", $user_id);
-$stmt2->execute();
-$reviews = $stmt2->get_result()->fetch_assoc();
-
-$avg_rating = $reviews['avg_rating'] ?? 0;
-$total_reviews = $reviews['total_reviews'] ?? 0;
-
-// --- JUMLAH BOOKING ---
-$sql_booking = "SELECT COUNT(*) as total_booking FROM bookings WHERE friend_id = ?";
-$stmt3 = $conn->prepare($sql_booking);
-$stmt3->bind_param("i", $user_id);
-$stmt3->execute();
-$total_booking = $stmt3->get_result()->fetch_assoc()['total_booking'] ?? 0;
-?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil User</title>
-
-    <!-- BOOTSTRAP CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
-        * { font-family: "Josefin Sans", sans-serif; }
-        .navbar { background-color: #FECE6A !important; }
-        .nav-link { color: #315DB4; font-weight: 500; }
-        .actived { color: #06206C; font-weight: 600; }
-        .profile-card { border: 1px solid #f2e6c9; border-radius: 12px; background-color: #fffdf7; padding: 1.5rem; margin-top: 1rem; }
-        .profile-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-right: 1rem; }
-        .profile-name { font-size: 1.3rem; font-weight: 600; }
-        .btn-yellow { background-color: #FECE6A; border: none; color: #000; font-weight: 500; border-radius: 8px; padding: 5px 15px; }
-        .nav-tabs .nav-link { border: none; color: #315DB4; font-weight: 500; }
-        .nav-tabs .nav-link.active { font-weight: 600; border-bottom: 3px solid #315DB4; color: #315DB4; }
-        .hobby-tag { background-color: #FECE6A; color: #000; padding: 3px 10px; border-radius: 20px; margin: 2px; font-size: 0.85rem; display: inline-block; }
-        .box { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    </style>
+<meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>Profil Teman</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&display=swap');
+* { font-family: "Josefin Sans", sans-serif; }
+body { background-color: #f8f9fa; }
+.navbar { background-color: #FECE6A !important; }
+.nav-link { color: #315DB4; font-weight: 500; }
+.nav-link.active { color: #06206C !important; font-weight: 600; }
+.profile-card { border: 1px solid #f2e6c9; border-radius: 12px; background-color: #fffdf7; padding: 1.5rem; margin-top: 1rem; }
+.profile-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-right: 1rem; border: 3px solid #FECE6A; }
+.profile-name { font-size: 1.4rem; font-weight: 600; }
+.rating i { color: #FFD700; }
+.btn-custom { border-radius: 20px; padding: 6px 18px; font-weight: 500; }
+.btn-simpan { background: #FECE6A; color: #333; }
+.btn-booking { background: #315DB4; color: #fff; }
+.box { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 1rem; }
+.tag { background-color: #FECE6A; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; margin: 3px; display: inline-block; color: #333; }
+.photo-grid { width: 100%; height: 250px; object-fit: cover; }
+</style>
 </head>
-<body class="bg-light">
+<body>
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <img src="assets/logo butuh teman.png" alt="" width="50">
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link actived" href="index.php">BERANDA</a></li>
-                    <li class="nav-item"><a class="nav-link" href="tentang.php">TENTANG</a></li>
-                    <li class="nav-item"><a class="nav-link" href="cari-teman.php">CARI TEMAN</a></li>
-                    <li class="nav-item"><a class="nav-link" href="komunitas.php">KOMUNITAS</a></li>
-                </ul>
-            </div>
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg sticky-top shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-bold text-dark" href="#">TemanKu</a>
+  </div>
+</nav>
+
+<div class="container">
+  <!-- PROFILE CARD -->
+  <div class="profile-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-start">
+      <div class="d-flex">
+        <img src="https://via.placeholder.com/100" class="profile-img" alt="Profile">
+        <div>
+          <div class="profile-name">Mark Wayar</div>
+          <div class="rating mb-1">
+            <i class="bi bi-star-fill"></i>
+            <i class="bi bi-star-fill"></i>
+            <i class="bi bi-star-fill"></i>
+            <i class="bi bi-star-fill"></i>
+            <i class="bi bi-star-fill"></i>
+            <small>(5/5)</small>
+          </div>
+          <div class="text-muted small">
+            <i class="bi bi-geo-alt"></i> Jakarta, Sudirman <br>
+            <i class="bi bi-gender-ambiguous"></i> Laki-laki
+          </div>
         </div>
-    </nav>
+      </div>
+      <div>
+        <button class="btn btn-simpan btn-custom me-2"><i class="bi bi-bookmark"></i> Simpan</button>
+        <!-- Tombol Booking buka modal -->
+         <button class="btn btn-success btn-custom me-2" data-bs-toggle="modal" data-bs-target="#chatModal">
+    <i class="bi bi-chat-dots-fill"></i> Chat
+  </button>
+        <button class="btn btn-booking btn-custom" data-bs-toggle="modal" data-bs-target="#bookingModal">
+          <i class="bi bi-calendar-check"></i> Booking
+        </button>
+      </div>
+    </div>
+  </div>
 
-    <!-- PROFILE CARD -->
-    <div class="container">
-        <div class="profile-card shadow-sm">
-            <div class="d-flex justify-content-between">
-                <div class="d-flex">
-                    <img src="<?= htmlspecialchars($user['profile_photo'] ?: 'assets/default.png') ?>" class="profile-img" alt="Profile">
-                    <div>
-                        <div class="profile-name"><?= htmlspecialchars($user['name']) ?></div>
-                        <div class="text-warning">
-                            ⭐ <?= number_format($avg_rating, 1) ?> (<?= $total_reviews ?> ulasan)
-                        </div>
-                        <div class="text-muted small">
-                            <i class="bi bi-geo-alt"></i> <?= htmlspecialchars($user['location'] ?: 'Belum diatur') ?><br>
-                            <i class="bi bi-tag"></i> <?= htmlspecialchars($user['tags'] ?: '-') ?>
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn-yellow me-2">
-                                <i class="bi bi-save"></i> Simpan
-                            </button>
-                            <button class="btn-yellow">
-                                <i class="bi bi-calendar-event"></i> Booking
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-muted small">
-                    Bergabung: <?= date("M Y", strtotime($user['created_at'])) ?>
-                </div>
-            </div>
+  <!-- TAB NAVIGATION -->
+  <ul class="nav nav-tabs mt-3">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#about">About</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#photos">Photos</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#community">Komunitas</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#history">Riwayat Booking</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#reviews">Ulasan</a></li>
+  </ul>
+
+  <div class="tab-content mt-3">
+    <!-- ABOUT -->
+    <div class="tab-pane fade show active" id="about">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="box">
+            <h6 class="fw-bold text-primary">Hobby</h6>
+            <span class="tag">Mancing</span>
+            <span class="tag">Traveling</span>
+            <span class="tag">Ngopi</span>
+          </div>
         </div>
-
-        <!-- TAB NAVIGATION -->
-        <ul class="nav nav-tabs mt-3">
-            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#about">About</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#photos">Photos</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#community">Komunitas</a></li>
-        </ul>
-
-        <!-- TAB CONTENT -->
-        <div class="tab-content mt-3">
-            <!-- About -->
-            <div class="tab-pane fade show active" id="about">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="box">
-                            <h6 class="fw-bold">Hobby <button class="btn btn-sm btn-light ms-2">+</button></h6>
-                            <div>
-                                <?php 
-                                if (!empty($user['tags'])) {
-                                    $tags = explode(',', $user['tags']);
-                                    foreach ($tags as $tag) {
-                                        echo "<span class='hobby-tag'>" . htmlspecialchars(trim($tag)) . "</span>";
-                                    }
-                                } else {
-                                    echo "<span class='text-muted small'>Belum ada hobby</span>";
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="box">
-                            <h6 class="fw-bold text-primary">About</h6>
-                            <p class="mb-2"><?= nl2br(htmlspecialchars($user['bio'] ?: 'Belum ada deskripsi.')) ?></p>
-                            <h6 class="fw-bold text-primary">Statistik</h6>
-                            <p class="mb-0">
-                                Booking Dilakukan: <?= $total_booking ?><br>
-                                Ulasan Diberikan: <?= $total_reviews ?>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Photos -->
-            <div class="tab-pane fade" id="photos">
-                <p>Foto-foto user tampil di sini.</p>
-            </div>
-
-            <!-- Komunitas -->
-            <div class="tab-pane fade" id="community">
-                <p>Komunitas user tampil di sini.</p>
-            </div>
+        <div class="col-md-8">
+          <div class="box">
+            <h6 class="fw-bold text-primary">About</h6>
+            <p>Gue suka mancing, siap nemenin lo mancing kapanpun. Tinggal infoin aja waktu dan lokasinya.</p>
+            <hr>
+            <h6 class="fw-bold text-primary">Statistik</h6>
+            <p class="mb-1">Booking Dilakukan: 12</p>
+            <p class="mb-0">Ulasan Diberikan: 8</p>
+          </div>
         </div>
+      </div>
     </div>
 
-    <!-- BOOTSTRAP JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- PHOTOS -->
+    <div class="tab-pane fade" id="photos">
+      <div class="box">
+        <h6 class="fw-bold text-primary mb-3">Photos</h6>
+        <div class="row g-3">
+          <div class="col-6 col-md-3">
+            <img src="https://img.freepik.com/free-photo/portrait-smiling-young-man_1268-21877.jpg?semt=ais_hybrid&w=740&q=80" class="img-fluid photo-grid rounded">
+          </div>
+          <div class="col-6 col-md-3">
+            <img src="https://img.freepik.com/free-photo/portrait-smiling-young-man_1268-21877.jpg?semt=ais_hybrid&w=740&q=80" class="img-fluid photo-grid rounded">
+          </div>
+          <div class="col-6 col-md-3">
+            <img src="https://img.freepik.com/free-photo/portrait-smiling-young-man_1268-21877.jpg?semt=ais_hybrid&w=740&q=80" class="img-fluid photo-grid rounded">
+          </div>
+          <div class="col-6 col-md-3">
+            <img src="https://img.freepik.com/free-photo/portrait-smiling-young-man_1268-21877.jpg?semt=ais_hybrid&w=740&q=80" class="img-fluid photo-grid rounded">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KOMUNITAS -->
+    <div class="tab-pane fade" id="community">
+      <div class="box">
+        <h6 class="fw-bold text-primary mb-3">Komunitas</h6>
+        <p class="text-muted">Fitur komunitas teman ini belum tersedia.</p>
+      </div>
+    </div>
+
+    <!-- RIWAYAT BOOKING -->
+    <div class="tab-pane fade" id="history">
+      <div class="box">
+        <p class="text-muted">📅 Riwayat booking teman ini akan tampil di sini.</p>
+      </div>
+    </div>
+
+    <!-- ULASAN -->
+    <div class="tab-pane fade" id="reviews">
+      <div class="box">
+        <p class="text-muted">⭐ Ulasan teman ini akan tampil di sini.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BOOKING -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow">
+      <div class="modal-header" style="background:#315DB4; color:#fff;">
+        <h5 class="modal-title" id="bookingModalLabel"><i class="bi bi-calendar-check"></i> Buat Booking</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="formBooking">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Tanggal Booking</label>
+            <input type="date" class="form-control" id="tglBooking" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Waktu Booking</label>
+            <input type="time" class="form-control" id="jamBooking" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Catatan</label>
+            <textarea class="form-control" id="catatanBooking" rows="3" placeholder="Tuliskan catatanmu..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-booking rounded-pill"><i class="bi bi-send"></i> Konfirmasi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Tangani submit booking
+document.getElementById("formBooking").addEventListener("submit", function(e){
+  e.preventDefault();
+  let tgl = document.getElementById("tglBooking").value;
+  let jam = document.getElementById("jamBooking").value;
+
+  if(tgl && jam){
+    // Tutup modal
+    let bookingModal = bootstrap.Modal.getInstance(document.getElementById("bookingModal"));
+    bookingModal.hide();
+
+    // SweetAlert sukses
+    Swal.fire({
+      icon: 'success',
+      title: 'Booking Berhasil!',
+      text: `Booking sudah dibuat untuk tanggal ${tgl} jam ${jam}.`,
+      confirmButtonColor: '#315DB4'
+    });
+  }
+});
+</script>
 </body>
 </html>
