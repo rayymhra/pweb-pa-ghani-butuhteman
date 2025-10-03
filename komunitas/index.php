@@ -211,14 +211,14 @@
    
 } 
         #main-page {
-            margin-top: -30px; /* tarik lebih dekat navbar */
+            margin-top: -40px; /* tarik lebih dekat navbar */
         }
 
         .page-title {
             color: #06206C;
             font-size: 30px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-top: 20px;
         }
 
         .page-title span {
@@ -228,9 +228,9 @@
         .page-subtitle {
             color: #1c3c75; /* lebih lembut seperti di gambar */
             font-size: 16px;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
+            font-weight: 500;
             line-height: 1.3; /* lebih lega */
-            font-family: "times new roman", sans-serif; /* biar mirip modern */
         }
 
         .main-grid-container {
@@ -515,40 +515,30 @@
         .community-profiles {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 15px;
             margin-top: 20px;
         }
 
-        /* PERUBAHAN PADA PROFILE CARD */
         .profile-card {
             display: flex;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border: 2px solid #FECE6A; /* Border kuning */
-            margin-bottom: 1px;
-            transition: all 0.3s ease;
-        }
-
-        .profile-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
         }
 
         .profile-avatar {
-            width: 60px; /* Diperbesar */
-            height: 60px; /* Diperbesar */
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #F4D03F, #F7DC6F);
+            background: #ddd;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 20px;
-            font-size: 24px; /* Diperbesar */
-            color: #06206C;
-            border: 2px solid #06206C;
+            margin-right: 15px;
+            font-size: 20px;
         }
 
         .profile-info {
@@ -557,49 +547,35 @@
 
         .profile-name {
             font-weight: bold;
-            color: #06206C;
+            color: #2c3e50;
             margin-bottom: 5px;
-            font-size: 18px;
         }
 
         .profile-details {
-            font-size: 14px;
+            font-size: 13px;
             color: #7f8c8d;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .profile-hobby {
-            font-size: 14px;
-            color: #294ebe;
+            font-size: 12px;
+            color: #06206C;
             font-style: italic;
-            background: #fcf8e3;
-            padding: 5px 10px;
-            border-radius: 15px;
-            display: inline-block;
         }
 
         .connect-btn {
             background: #06206C;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 15px;
             border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .connect-btn:hover {
             background: #0d3bb1;
-        }
-
-        .connect-btn.connected {
-            background: #27ae60;
-        }
-
-        .connect-btn.connected:hover {
-            background: #219653;
         }
 
         .hidden {
@@ -618,57 +594,10 @@
             min-width: 300px;
         }
         
-        /* Style untuk header komunitas dengan tombol Join Grup */
-        .community-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .join-group-btn {
-            background: linear-gradient(to right, #F4D03F, #F7DC6F);
-            color: #06206C;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
-            min-width: 140px; /* Menambahkan lebar minimum untuk konsistensi */
-            text-align: center;
-        }
-        
-        .join-group-btn:hover {
-            background: linear-gradient(to right, #F7DC6F, #F4D03F);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-            transform: translateY(-2px);
-        }
-        
-        .join-group-btn.joined {
-            background: linear-gradient(to right, #27ae60, #2ecc71);
-            color: white;
-        }
-        
         @media (max-width: 992px) {
             .sidebar {
                 width: 100%;
                 margin-top: 20px;
-            }
-            
-            .community-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .community-header {
-                align-items: center;
-                text-align: center;
             }
         }
     </style>
@@ -749,13 +678,8 @@
 
                     <!-- Halaman Komunitas (Akan ditampilkan ketika kategori dipilih) -->
                     <div id="community-page" class="hidden">
-                        <div class="community-header">
-                            <div>
-                                <h1 class="page-title" id="community-category-title">Komunitas</h1>
-                                <p class="page-subtitle" id="community-category-desc">Temukan orang-orang dengan minat yang sama dan bangun hubungan yang bermakna.</p>
-                            </div>
-                            <button class="join-group-btn" id="join-group-btn">Lihat Grup</button>
-                        </div>
+                        <h1 class="page-title" id="community-category-title">Komunitas</h1>
+                        <p class="page-subtitle" id="community-category-desc">Temukan orang-orang dengan minat yang sama dan bangun hubungan yang bermakna.</p>
                         
                         <div class="community-profiles" id="community-profiles-container">
                             <!-- Profil akan diisi oleh JavaScript -->
@@ -767,39 +691,39 @@
             <!-- Sidebar -->
             <div class="col-lg-4 col-md-5">
                 <aside class="sidebar">
-                    <div class="sidebar-title">Grup Komunitas</div>
+                    <div class="sidebar-title">Kategori</div>
                     <div class="category-list">
                         <div class="category-item" data-category="musik">
                             <div class="category-icon" style="background: #ff6b6b;">🎵</div>
-                            <div class="category-name">Musik Lovers</div>
+                            <div class="category-name">MUSIK</div>
                         </div>
                         <div class="category-item" data-category="kuliner">
                             <div class="category-icon" style="background: #4ecdc4;">🍽️</div>
-                            <div class="category-name">Food Explorer</div>
+                            <div class="category-name">KULINER</div>
                         </div>
                         <div class="category-item" data-category="travel">
                             <div class="category-icon" style="background: #45b7d1;">✈️</div>
-                            <div class="category-name">Travel Buddies</div>
+                            <div class="category-name">TRAVEL</div>
                         </div>
                         <div class="category-item" data-category="game">
                             <div class="category-icon" style="background: #f39c12;">🎮</div>
-                            <div class="category-name">Gamers United</div>
+                            <div class="category-name">GAME</div>
                         </div>
                         <div class="category-item" data-category="olahraga">
                             <div class="category-icon" style="background: #e74c3c;">⚽</div>
-                            <div class="category-name">Sport Community</div>
+                            <div class="category-name">OLAHRAGA</div>
                         </div>
                         <div class="category-item" data-category="teknologi">
                             <div class="category-icon" style="background: #9b59b6;">💻</div>
-                            <div class="category-name">Tech Enthusiasts</div>
+                            <div class="category-name">TEKNOLOGI</div>
                         </div>
                         <div class="category-item" data-category="fotografi">
                             <div class="category-icon" style="background: #34495e;">📷</div>
-                            <div class="category-name">Photography Club</div>
+                            <div class="category-name">FOTOGRAFI</div>
                         </div>
                         <div class="category-item" data-category="hiking">
                             <div class="category-icon" style="background: #27ae60;">🏔️</div>
-                            <div class="category-name">Nature Explorers</div>
+                            <div class="category-name">HIKING</div>
                         </div>
                     </div>
                 </aside>
@@ -865,7 +789,7 @@
         // Data untuk setiap kategori
         const categoryData = {
             musik: {
-                title: "Musik Lovers",
+                title: "Komunitas Musik",
                 description: "Temukan orang-orang dengan selera musik yang sama. Diskusikan artis favorit, berbagi playlist, dan bahkan buat band bersama!",
                 profiles: [
                     { name: "Jihan", age: "20 th", job: "mahasiswa", hobby: "Bermain gitar dan menyanyi" },
@@ -875,7 +799,7 @@
                 ]
             },
             kuliner: {
-                title: "Food Explorer",
+                title: "Komunitas Kuliner",
                 description: "Bagikan resep, temukan tempat makan terbaik, dan bertemu dengan sesama food enthusiast.",
                 profiles: [
                     { name: "Dewi", age: "26 th", job: "koki", hobby: "Memasak masakan tradisional" },
@@ -885,7 +809,7 @@
                 ]
             },
             travel: {
-                title: "Travel Buddies",
+                title: "Komunitas Travel",
                 description: "Bertukar cerita perjalanan, tips backpacking, dan rencanakan trip bersama ke destinasi impian.",
                 profiles: [
                     { name: "Ahmad", age: "29 th", job: "travel blogger", hobby: "Backpacking ke tempat terpencil" },
@@ -895,7 +819,7 @@
                 ]
             },
             game: {
-                title: "Gamers United",
+                title: "Komunitas Game",
                 description: "Temukan squad untuk bermain game, diskusikan strategi, dan ikuti turnamen bersama.",
                 profiles: [
                     { name: "Rizky", age: "19 th", job: "esports player", hobby: "Bermain game kompetitif" },
@@ -905,7 +829,7 @@
                 ]
             },
             olahraga: {
-                title: "Sport Community",
+                title: "Komunitas Olahraga",
                 description: "Temukan partner olahraga, bagikan tips kesehatan, dan ikuti event olahraga bersama.",
                 profiles: [
                     { name: "Andi", age: "27 th", job: "personal trainer", hobby: "Fitness dan angkat beban" },
@@ -915,7 +839,7 @@
                 ]
             },
             teknologi: {
-                title: "Tech Enthusiasts",
+                title: "Komunitas Teknologi",
                 description: "Diskusikan perkembangan teknologi terbaru, berbagi pengetahuan, dan kembangkan skill bersama.",
                 profiles: [
                     { name: "Rudi", age: "28 th", job: "software engineer", hobby: "Pemrograman dan AI" },
@@ -925,7 +849,7 @@
                 ]
             },
             fotografi: {
-                title: "Photography Club",
+                title: "Komunitas Fotografi",
                 description: "Bagikan karya fotografi, pelajari teknik baru, dan eksplorasi dunia melalui lensa kamera.",
                 profiles: [
                     { name: "Ahmad", age: "32 th", job: "fotografer profesional", hobby: "Fotografi landscape dan alam" },
@@ -935,7 +859,7 @@
                 ]
             },
             hiking: {
-                title: "Nature Explorers",
+                title: "Komunitas Hiking",
                 description: "Jelajahi alam bersama, bagikan pengalaman pendakian, dan temukan jalur hiking terbaik.",
                 profiles: [
                     { name: "Andi", age: "31 th", job: "pemandu wisata", hobby: "Pendakian gunung dan camping" },
@@ -988,10 +912,10 @@
                 const profileCard = document.createElement('div');
                 profileCard.className = 'profile-card';
                 profileCard.innerHTML = `
-                    <div class="profile-avatar">${profile.name.charAt(0)}</div>
+                    <div class="profile-avatar">👤</div>
                     <div class="profile-info">
                         <div class="profile-name">${profile.name}</div>
-                        <div class="profile-details">${profile.age} • ${profile.job}</div>
+                        <div class="profile-details">${profile.age}, ${profile.job}</div>
                         <div class="profile-hobby">${profile.hobby}</div>
                     </div>
                     <button class="connect-btn">Connect</button>
@@ -1024,10 +948,10 @@
                 const btn = e.target;
                 if (btn.textContent === 'Connect') {
                     btn.textContent = 'Connected';
-                    btn.classList.add('connected');
+                    btn.style.background = '#27ae60';
                 } else {
                     btn.textContent = 'Connect';
-                    btn.classList.remove('connected');
+                    btn.style.background = '#06206C';
                 }
             }
         });

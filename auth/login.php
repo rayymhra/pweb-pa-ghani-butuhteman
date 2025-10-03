@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['role']    = $user['role'];
 
                 switch ($user['role']) {
-                    case "Admin": header("Location: admin_dashboard.php"); break;
+                    case "Admin": header("Location: ../admin/index.php"); break;
                     case "Friend": header("Location: profil_teman.php"); break;
                     case "Client": header("Location: profil_user.php"); break;
                     default: header("Location: index.php"); break;
@@ -47,6 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Let's Book Friends - Login</title>
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -196,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       color: #6b7280;
     }
 
-    .terms a { color: #1d4ed8; text-decoration: none; }
+    .terms a { color: #1d4ed8; }
     .terms a:hover { text-decoration: underline; }
 
     /* Responsive */
@@ -204,6 +205,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       .container { flex-direction: column; }
       .image-section { height: 40vh; }
       .image-section img { height: 100%; }
+    }
+
+    .register {
+      text-align: right;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -215,8 +221,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="form-section">
       <div class="form-container">
         <div class="form-header">
-          <h1>Let’s Book <span>Friends</span></h1>
-          <p>Welcome back, please login to your account</p>
+          <h1>Ayo Sewa <span>Teman</span></h1>
+          <p>Selamat datang kembali ke akun anda, silahkan masukkan email dan password anda</p>
         </div>
 
         <?php if (!empty($error)): ?>
@@ -224,6 +230,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             ⚠️ <strong>Error:</strong> <?= $error; ?>
           </div>
         <?php endif; ?>
+        <?php if (!empty($success)) echo "<p class='msg success alert'>$success</p>"; ?>
 
         <form method="POST">
           <input type="email" name="email" class="form-input" placeholder="Your email" required>
@@ -234,17 +241,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="remember">Remember me</label>
           </div>
 
+          <!-- <div class="register">
+      belum punya akun? <a href="register.php">daftar sekarang</a>
+
+      </div>
+           -->
+
           <div class="button-group">
             <button type="submit" class="btn btn-login">Login</button>
-            <button type="button" class="btn btn-signup" onclick="window.location.href='register.php'">Sign Up</button>
+            <!-- <button type="button" class="btn btn-signup" onclick="window.location.href='register.php'">Sign Up</button> -->
           </div>
+          
         </form>
       </div>
+      
+
 
       <div class="terms">
-        By signing up, you agree to <br><br>
-        <a href="#">Terms & Conditions</a> and 
-        <a href="#">Privacy Policy</a>
+        Belum punya akun?
+        <a href="register.php">Daftar Sekarang</a>
       </div>
     </div>
   </div>

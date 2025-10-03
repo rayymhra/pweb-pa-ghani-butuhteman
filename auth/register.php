@@ -36,7 +36,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("sssssss", $name, $username, $email, $hashed_password, $phone, $gender, $role);
 
             if ($stmt->execute()) {
-                $success = "Akun berhasil dibuat. Silakan login!";
+              $success = "Akun berhasil dibuat. Silakan login!";
+                header("Location: login.php");
             } else {
                 $error = "Terjadi kesalahan: " . $conn->error;
             }
@@ -114,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     .form-header p {
       color: #0F4457;
       margin-bottom: 1.5rem;
-      font-size: 1rem;
+      font-size: 16px;
     }
 
     /* Notifikasi */
@@ -213,18 +214,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="form-section">
       <div class="form-container">
         <div class="form-header">
-          <h1>Sign <span>Up</span></h1>
-          <p>Join us and connect with amazing friends</p>
+          <h1>Daftar <span>Yuk!</span></h1>
+          <p>Gabung dengan kami dan temukan teman untuk kalian sewa</p>
         </div>
 
         <?php if (!empty($success)) echo "<p class='msg success'>$success</p>"; ?>
         <?php if (!empty($error)) echo "<p class='msg error'>$error</p>"; ?>
 
         <form method="POST" action="">
-          <input type="text" name="name" class="form-input" placeholder="Full Name" required>
-          <input type="email" name="email" class="form-input" placeholder="Your email" required>
+          <input type="text" name="name" class="form-input" placeholder="Nama Lengkap" required>
+          <input type="email" name="email" class="form-input" placeholder="Email" required>
           <input type="password" name="password" class="form-input" placeholder="Password" required>
-          <input type="password" name="confirm_password" class="form-input" placeholder="Confirm Password" required>
+          <input type="password" name="confirm_password" class="form-input" placeholder="Konfirmasi Password" required>
 
           <div class="terms-check">
             <input type="checkbox" id="terms" required>
@@ -235,8 +236,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
 
           <div class="button-group">
-            <button type="submit" class="btn btn-signup">Sign Up</button>
-            <button type="button" class="btn btn-login" onclick="window.location.href='login.php'">Login</button>
+            <button type="submit" class="btn btn-signup">Daftar</button>
+            <!-- <button type="button" class="btn btn-login" onclick="window.location.href='login.php'">Login</button> -->
           </div>
 
           <p class="already">

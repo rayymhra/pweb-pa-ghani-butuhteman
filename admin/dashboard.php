@@ -107,6 +107,9 @@
       background-color: #06206C;
       color: #FECE6A;
     }
+    .topbar a{
+      color: black;
+    }
   </style>
 </head>
 <body>
@@ -114,18 +117,16 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <img src="Greatest_Logo.png" alt="Logo">
-    <a href="#" class="active"><i class="bi bi-house-door-fill me-2"></i>Dashboard</a>
-    <a href="#"><i class="bi bi-people-fill me-2"></i>Pengguna</a>
-    <a href="#"><i class="bi bi-calendar-check-fill me-2"></i>Booking</a>
-    <a href="#"><i class="bi bi-cash-stack me-2"></i>Pendapatan</a>
-    <a href="#"><i class="bi bi-gear-fill me-2"></i>Pengaturan</a>
+    <a href="dashboard.php" class="active"><i class="bi bi-house-door-fill me-2"></i>Dashboard</a>
+    <a href="user.php"><i class="bi bi-people-fill me-2"></i>User</a>
+    <a href="komunitas.php"><i class="bi bi-people-fill me-2"></i>Komunitas</a>
   </div>
 
   <!-- Topbar -->
   <div class="topbar">
     <h4>Dashboard</h4>
     <div>
-      <i class="bi bi-bell-fill me-3"></i>
+      <a href="nontifikasi.php"><i class="bi bi-bell-fill me-3"></i></a>
       <i class="bi bi-person-circle"></i>
     </div>
   </div>
@@ -155,20 +156,21 @@
     </div>
 
     <!-- Charts -->
-    <div class="row g-4 mt-2">
-      <div class="col-md-8">
-        <div class="card p-3">
-          <h5>Tren Booking & Pendapatan</h5>
-          <canvas id="bookingChart" height="120"></canvas>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card p-3">
-          <h5>Kategori Populer</h5>
-          <canvas id="categoryChart" height="120"></canvas>
-        </div>
-      </div>
+<div class="row g-4 mt-2 align-items-stretch">
+  <div class="col-md-8">
+    <div class="card p-3 h-100">
+      <h5>Tren Booking & Pendapatan</h5>
+      <canvas id="bookingChart" class="w-100 h-100"></canvas>
     </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 h-100">
+      <h5>Kategori Populer</h5>
+      <canvas id="categoryChart" class="w-100 h-100"></canvas>
+    </div>
+  </div>
+</div>
+
 
     <!-- Table -->
     <div class="card mt-4 p-3">
