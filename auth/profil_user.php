@@ -11,16 +11,16 @@ if (!$conn) {
 }
 
 session_start();
-// Asumsi user sudah login
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1; // default sementara
-}
 $user_id = $_SESSION['user_id'];
+$q = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
+$user = mysqli_fetch_assoc($q);
+
 
 // ====== update profil umum ======
 if (isset($_POST['update_profile'])) {
     $name     = mysqli_real_escape_string($conn, $_POST['name']);
-    $location   = mysqli_real_escape_string($conn, $_POST['location']);
+    $location = mysqli_real_escape_string($conn, $_POST['location']);
+    $phone    = mysqli_real_escape_string($conn, $_POST['phone']);
     $gender   = mysqli_real_escape_string($conn, $_POST['gender']);
     $password = $_POST['password'];
     
@@ -43,12 +43,13 @@ if (isset($_POST['update_profile'])) {
     }
     
     $sql = "UPDATE users SET 
-    name='$name',
-    location='$location',
-    gender='$gender'
-    $update_photo
-    $update_password
-    WHERE id=$user_id";
+        name='$name',
+        location='$location',
+        phone='$phone',
+        gender='$gender'
+        $update_photo
+        $update_password
+        WHERE id=$user_id";
     
     mysqli_query($conn, $sql);
     header("Location: profil_user.php?success=1");
@@ -95,14 +96,67 @@ $user = mysqli_fetch_assoc($q);
             font-family: "Josefin Sans", sans-serif; 
         }
 
-        .navbar 
-        { 
-            background-color: #FECE6A !important; 
+        /* NAVBARRRRRR */
+        .navbar {
+            background-color: #FECE6A !important;
         }
-
-        .nav-link { 
-            color: #315DB4; 
-            font-weight: 500; 
+        
+        .nav-link {
+            color: #315DB4;
+            font-weight: 500;
+        }
+        
+        /* Pastikan semua nav-item rata tengah */
+        .navbar .nav-link,
+        .navbar .btn-login {
+            display: flex;
+            align-items: center;
+            height: 40px; /* sesuaikan agar konsisten */
+            line-height: 1.2;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        /* Supaya foto profil benar-benar sejajar */
+        .navbar .nav-link img {
+            width: 35px;
+            height: 35px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        /* Untuk tombol login */
+        .btn-login {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-login {
+            background-color: #06206C; /* biru navy */
+            color: #FECE6A; /* kuning */
+            font-weight: 600;
+            font-size: 18px;
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 2px solid #06206C;
+            transition: all 0.3s ease;
+            /* box-shadow: 0 3px 8px rgba(6, 32, 108, 0.3); */
+        }
+        
+        .btn-login:hover {
+            background-color: #FECE6A; /* kuning */
+            color: #06206C; /* biru navy */
+            border: 2px solid #FECE6A;
+            box-shadow: 0 5px 12px rgba(254, 206, 106, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .btn-login:active {
+            transform: scale(0.95);
+            background-color: #e6b95f; /* kuning gelap */
+            border-color: #e6b95f;
+            color: #06206C;
         }
 
         .actived { 
@@ -160,27 +214,55 @@ $user = mysqli_fetch_assoc($q);
 </head>
 <body class="bg-light">
     
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="#">
-                <img src="https://via.placeholder.com/50" alt="" width="50">
+            <a class="navbar-brand" href="">
+                <img src="assets/img/logo butuh teman.png" alt="" width="50">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="#">BERANDA</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">TENTANG</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">CARI TEMAN</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">KOMUNITAS</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
+                    </li>
                     
-                    <a href="">
-                        <img src="<?= !empty($user['profile_photo']) ? $user['profile_photo'] : "../assets/img/user.jpg" ?>" class="profile-img-nav" alt="Profile">
-                    </a>
-                    
+                    <?php if (isset($_SESSION['user'])): ?>
+                    <!-- Jika user login -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="<?= $_SESSION['user']['photo'] ?? 'assets/img/default-user.png' ?>" 
+                            alt="profile" 
+                            class="rounded-circle me-2" 
+                            width="35" height="35" 
+                            style="object-fit: cover;">
+                            <?= htmlspecialchars($_SESSION['user']['name']) ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
+                            <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
+                        </ul>
+                    </li>
+                    <?php else: ?>
+                    <!-- Jika belum login -->
+                    <li class="nav-item">
+                        <a href="login.php" class="btn btn-login ms-3">Login</a>
+                    </li>
+                    <?php endif; ?>
                 </ul>
+                
             </div>
         </div>
     </nav>
@@ -316,53 +398,57 @@ $user = mysqli_fetch_assoc($q);
     </div>
     
     <!-- MODAL EDIT PROFIL -->
-    <div class="modal fade" id="editModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Profil</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="update_profile" value="1">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Nama</label>
-                                <input type="text" name="name" class="form-control" value="<?= $user['name'] ?>">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Alamat</label>
-                                <input type="text" name="location" class="form-control" value="<?= $user['location'] ?>">
-                            </div>
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Profil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="update_profile" value="1">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nama</label>
+                            <input type="text" name="name" class="form-control" value="<?= $user['name'] ?>">
                         </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Jenis Kelamin</label>
-                                <select name="gender" class="form-select">
-                                    <option <?= $user['gender']=='Pria'?'selected':'' ?>>Pria</option>
-                                    <option <?= $user['gender']=='Wanita'?'selected':'' ?>>Wanita</option>
-                                    <option <?= $user['gender']=='Lainnya'?'selected':'' ?>>Lainnya</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Foto Profil</label>
-                                <input type="file" name="profile_photo" class="form-control">
-                            </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Alamat</label>
+                            <input type="text" name="location" class="form-control" value="<?= $user['location'] ?>">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password Baru</label>
-                            <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ganti">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nomor HP</label>
+                            <input type="text" name="phone" class="form-control" value="<?= $user['phone'] ?>">
                         </div>
-                        <button type="submit" class="btn btn-warning w-100">
-                            <i class="bi bi-save"></i> Simpan Perubahan
-                        </button>
-                    </form>
-                </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Jenis Kelamin</label>
+                            <select name="gender" class="form-select">
+                                <option <?= $user['gender']=='Pria'?'selected':'' ?>>Pria</option>
+                                <option <?= $user['gender']=='Wanita'?'selected':'' ?>>Wanita</option>
+                                <option <?= $user['gender']=='Lainnya'?'selected':'' ?>>Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Foto Profil</label>
+                        <input type="file" name="profile_photo" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password Baru</label>
+                        <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ganti">
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-save"></i> Simpan Perubahan
+                    </button>
+                </form>
             </div>
         </div>
     </div>
-    
+</div>
+
     <!-- MODAL EDIT HOBBY -->
     <div class="modal fade" id="hobbyModal" tabindex="-1">
         <div class="modal-dialog">

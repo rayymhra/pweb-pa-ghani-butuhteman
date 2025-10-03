@@ -7,240 +7,240 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
     <link rel="stylesheet" href="assets/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
+    
     <style>
-
-        @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
-
-* {
-    font-family: "Josefin Sans", sans-serif;
-}
-
         
-
-/* NAVBARRRRRR */
-.navbar {
-    background-color: #FECE6A !important;
-}
-
-.nav-link {
-    color: #315DB4;
-    font-weight: 500;
-}
-
+        @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
+        
+        * {
+            font-family: "Josefin Sans", sans-serif;
+        }
+        
+        
+        
+        /* NAVBARRRRRR */
+        .navbar {
+            background-color: #FECE6A !important;
+        }
+        
+        .nav-link {
+            color: #315DB4;
+            font-weight: 500;
+        }
+        
         /* Pastikan semua nav-item rata tengah */
-.navbar .nav-link,
-.navbar .btn-login {
-    display: flex;
-    align-items: center;
-    height: 40px; /* sesuaikan agar konsisten */
-    line-height: 1.2;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-/* Supaya foto profil benar-benar sejajar */
-.navbar .nav-link img {
-    width: 35px;
-    height: 35px;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-/* Untuk tombol login */
-.btn-login {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-login {
-    background-color: #06206C; /* biru navy */
-    color: #FECE6A; /* kuning */
-    font-weight: 600;
-    font-size: 18px;
-    padding: 8px 20px;
-    border-radius: 30px;
-    border: 2px solid #06206C;
-    transition: all 0.3s ease;
-    /* box-shadow: 0 3px 8px rgba(6, 32, 108, 0.3); */
-}
-
-.btn-login:hover {
-    background-color: #FECE6A; /* kuning */
-    color: #06206C; /* biru navy */
-    border: 2px solid #FECE6A;
-    box-shadow: 0 5px 12px rgba(254, 206, 106, 0.4);
-    transform: translateY(-2px);
-}
-
-.btn-login:active {
-    transform: scale(0.95);
-    background-color: #e6b95f; /* kuning gelap */
-    border-color: #e6b95f;
-    color: #06206C;
-}
-
-
-
-
-
-
-
-.btn-yellow {
-    background-color: #FECE6A;
-    color: #0F4457;
-    border-color: #FECE6A;
-    font-weight: 600;
-    font-size: 18px;
-}
-
-.btn-yellow:hover {
-    background-color: #e6b95f; /* slightly darker yellow for hover */
-    color: #0F4457;
-}
-
-.btn-yellow:focus,
-.btn-yellow:active {
-    background-color: #d9aa54 !important; /* pressed state */
-    color: #0F4457 !important;
-    box-shadow: 0 0 0 0.25rem rgba(254, 206, 106, 0.5);
-}
-
-
-.actived {
-    color: #06206C;
-    font-weight: 600;
-}
-
-.beranda-title {
-    color: #06206C;
-    font-size: 60px;
-    font-weight: 700;
-    
-}
-
-.beranda-title-title {
-    color: #315DB4;
-    font-size: 60px;
-    font-weight: 700;
-}
-
-.tentang-kami-section {
-    background-color: #06206C;
-}
-
-.tentang-description {
-    text-align: justify;
-    font-size: 17px;
-}
-
-.tentang-title {
-    color: #FECE6A;
-    width: fit-content;
-    position: relative;
-}
-
-.tentang-title::after {
-    content: "";
-    width: 100%;
-    height: 7px;
-    
-    background-color: #315DB4;
-    
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-}
-
-.btn-warning {
-    background-color: #FECE6A;
-    color: #0F4457;
-    font-weight: 600;
-    border-color: #FECE6A;
-    border-width: 3px;
-}
-
-.btn-warning:hover {
-    background-color: #ffffff00;
-    color: #0F4457;
-    border-color: #FECE6A;
-    border-width: 3px;
-
-}
-
-.btn-outline-warning {
-    color: #0F4457;
-    border-color: #FECE6A;
-    border-width: 3px;
-    font-weight: 600;
-
-}
-
-.btn-outline-warning:hover {
-    background-color: #FECE6A;
-    border-color: #FECE6A;
-    color: #0F4457;
-}
-
-.statistic-section {
-    background-color: #FECE6A;
-}
-
-.statistic-title {
-    color: #0F4457;
-    font-weight: 600;
-}
-
-.statistic-number {
-    font-weight: 700;
-}
-
-/* CARI TEMAN INDEX */
-.cari-teman-section .card {
-    border: #FECE6A 3px solid;
-}
-
-.cari-teman-title h1{
-    color: #06206C;
-    font-weight: 700;
-}
-
-.cari-teman-title:after {
-    content: "";
-    width: 24%; 
-    height: 4px;
-    background: #FECE6A;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-}
-
-.komunitas-title {
-    color: #06206C;
-    font-weight: 700;
-}
-
-.komunitas-title:after {
-    content: "";
-    width: 24%; 
-    height: 4px;
-    background: #FECE6A;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-}
-
-
-
-
-
- .footer {
+        .navbar .nav-link,
+        .navbar .btn-login {
+            display: flex;
+            align-items: center;
+            height: 40px; /* sesuaikan agar konsisten */
+            line-height: 1.2;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        
+        /* Supaya foto profil benar-benar sejajar */
+        .navbar .nav-link img {
+            width: 35px;
+            height: 35px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        /* Untuk tombol login */
+        .btn-login {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-login {
+            background-color: #06206C; /* biru navy */
+            color: #FECE6A; /* kuning */
+            font-weight: 600;
+            font-size: 18px;
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 2px solid #06206C;
+            transition: all 0.3s ease;
+            /* box-shadow: 0 3px 8px rgba(6, 32, 108, 0.3); */
+        }
+        
+        .btn-login:hover {
+            background-color: #FECE6A; /* kuning */
+            color: #06206C; /* biru navy */
+            border: 2px solid #FECE6A;
+            box-shadow: 0 5px 12px rgba(254, 206, 106, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .btn-login:active {
+            transform: scale(0.95);
+            background-color: #e6b95f; /* kuning gelap */
+            border-color: #e6b95f;
+            color: #06206C;
+        }
+        
+        
+        
+        
+        
+        
+        
+        .btn-yellow {
+            background-color: #FECE6A;
+            color: #0F4457;
+            border-color: #FECE6A;
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .btn-yellow:hover {
+            background-color: #e6b95f; /* slightly darker yellow for hover */
+            color: #0F4457;
+        }
+        
+        .btn-yellow:focus,
+        .btn-yellow:active {
+            background-color: #d9aa54 !important; /* pressed state */
+            color: #0F4457 !important;
+            box-shadow: 0 0 0 0.25rem rgba(254, 206, 106, 0.5);
+        }
+        
+        
+        .actived {
+            color: #06206C;
+            font-weight: 600;
+        }
+        
+        .beranda-title {
+            color: #06206C;
+            font-size: 60px;
+            font-weight: 700;
+            
+        }
+        
+        .beranda-title-title {
+            color: #315DB4;
+            font-size: 60px;
+            font-weight: 700;
+        }
+        
+        .tentang-kami-section {
+            background-color: #06206C;
+        }
+        
+        .tentang-description {
+            text-align: justify;
+            font-size: 17px;
+        }
+        
+        .tentang-title {
+            color: #FECE6A;
+            width: fit-content;
+            position: relative;
+        }
+        
+        .tentang-title::after {
+            content: "";
+            width: 100%;
+            height: 7px;
+            
+            background-color: #315DB4;
+            
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+        }
+        
+        .btn-warning {
+            background-color: #FECE6A;
+            color: #0F4457;
+            font-weight: 600;
+            border-color: #FECE6A;
+            border-width: 3px;
+        }
+        
+        .btn-warning:hover {
+            background-color: #ffffff00;
+            color: #0F4457;
+            border-color: #FECE6A;
+            border-width: 3px;
+            
+        }
+        
+        .btn-outline-warning {
+            color: #0F4457;
+            border-color: #FECE6A;
+            border-width: 3px;
+            font-weight: 600;
+            
+        }
+        
+        .btn-outline-warning:hover {
+            background-color: #FECE6A;
+            border-color: #FECE6A;
+            color: #0F4457;
+        }
+        
+        .statistic-section {
+            background-color: #FECE6A;
+        }
+        
+        .statistic-title {
+            color: #0F4457;
+            font-weight: 600;
+        }
+        
+        .statistic-number {
+            font-weight: 700;
+        }
+        
+        /* CARI TEMAN INDEX */
+        .cari-teman-section .card {
+            border: #FECE6A 3px solid;
+        }
+        
+        .cari-teman-title h1{
+            color: #06206C;
+            font-weight: 700;
+        }
+        
+        .cari-teman-title:after {
+            content: "";
+            width: 24%; 
+            height: 4px;
+            background: #FECE6A;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+        
+        .komunitas-title {
+            color: #06206C;
+            font-weight: 700;
+        }
+        
+        .komunitas-title:after {
+            content: "";
+            width: 24%; 
+            height: 4px;
+            background: #FECE6A;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+        }
+        
+        
+        
+        
+        
+        .footer {
             background: #FECE6A;
             padding: 60px 40px 30px;
             color: #06206C;
         }
-
+        
         .footer-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -249,7 +249,7 @@
             gap: 50px;
             align-items: start;
         }
-
+        
         .footer-section h2 {
             font-size: 32px;
             font-weight: bold;
@@ -257,7 +257,7 @@
             line-height: 1.2;
             color: #06206C;
         }
-
+        
         .footer-section h3 {
             font-size: 24px;
             font-weight: 600;
@@ -267,22 +267,22 @@
             padding-bottom: 8px;
             display: inline-block;
         }
-
+        
         .footer-section p {
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 15px;
             color: #1565C0;
         }
-
+        
         .footer-section ul {
             list-style: none;
         }
-
+        
         .footer-section ul li {
             margin-bottom: 12px;
         }
-
+        
         .footer-section ul li a {
             color: #1976D2;
             text-decoration: none;
@@ -290,12 +290,12 @@
             font-weight: 500;
             transition: color 0.3s ease;
         }
-
+        
         .footer-section ul li a:hover {
             color: #0D47A1;
             text-decoration: underline;
         }
-
+        
         .contact-item {
             display: flex;
             align-items: center;
@@ -303,20 +303,20 @@
             font-size: 16px;
             color: #1565C0;
         }
-
+        
         .contact-item i {
             font-size: 20px;
             margin-right: 12px;
             color: #2196F3;
             width: 25px;
         }
-
+        
         .social-links {
             display: flex;
             gap: 15px;
             margin-top: 20px;
         }
-
+        
         .social-links a {
             display: inline-flex;
             align-items: center;
@@ -330,12 +330,12 @@
             text-decoration: none;
             transition: all 0.3s ease;
         }
-
+        
         .social-links a:hover {
             background-color: #1976D2;
             transform: translateY(-2px);
         }
-
+        
         .footer-bottom {
             text-align: center;
             margin-top: 50px;
@@ -345,14 +345,14 @@
             color: #1976D2;
             font-weight: 500;
         }
-
+        
         @media (max-width: 1024px) {
             .footer-content {
                 grid-template-columns: 1fr 1fr;
                 gap: 40px;
             }
         }
-
+        
         @media (max-width: 768px) {
             .footer {
                 padding: 40px 20px 20px;
@@ -363,29 +363,29 @@
                 gap: 35px;
                 text-align: center;
             }
-
+            
             .footer-section h2 {
                 font-size: 28px;
             }
-
+            
             .footer-section h3 {
                 font-size: 20px;
             }
-
+            
             .contact-item {
                 justify-content: center;
             }
-
+            
             .social-links {
                 justify-content: center;
             }
         }
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
     </style>
 </head>
 <body>
@@ -399,45 +399,45 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-    <li class="nav-item">
-        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
-    </li>
-
-    <?php if (isset($_SESSION['user'])): ?>
-        <!-- Jika user login -->
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="<?= $_SESSION['user']['photo'] ?? 'assets/img/default-user.png' ?>" 
-                     alt="profile" 
-                     class="rounded-circle me-2" 
-                     width="35" height="35" 
-                     style="object-fit: cover;">
-                <?= htmlspecialchars($_SESSION['user']['name']) ?>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
-                <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
-            </ul>
-        </li>
-    <?php else: ?>
-        <!-- Jika belum login -->
-        <li class="nav-item">
-            <a href="auth/login.php" class="btn btn-login ms-3">Login</a>
-        </li>
-    <?php endif; ?>
-</ul>
-
+                    <li class="nav-item">
+                        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
+                    </li>
+                    
+                    <?php if (isset($_SESSION['user'])): ?>
+                    <!-- Jika user login -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="<?= $_SESSION['user']['photo'] ?? 'assets/img/default-user.png' ?>" 
+                            alt="profile" 
+                            class="rounded-circle me-2" 
+                            width="35" height="35" 
+                            style="object-fit: cover;">
+                            <?= htmlspecialchars($_SESSION['user']['name']) ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
+                            <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
+                        </ul>
+                    </li>
+                    <?php else: ?>
+                    <!-- Jika belum login -->
+                    <li class="nav-item">
+                        <a href="auth/login.php" class="btn btn-login ms-3">Login</a>
+                    </li>
+                    <?php endif; ?>
+                </ul>
+                
             </div>
         </div>
     </nav>
