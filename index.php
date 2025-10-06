@@ -1,3 +1,31 @@
+<?php
+session_start();
+
+    $host = "localhost";
+    $user = "root";
+    $pass = "";
+    $db   = "butuh_teman";
+
+    $conn = mysqli_connect($host, $user, $pass, $db);
+    if (! $conn) {
+        die("Koneksi gagal: " . mysqli_connect_error());
+    }
+
+    // Check if user is logged in
+    // if (! isset($_SESSION['user'])) {
+    //     header("Location: auth/login.php");
+    //     exit;
+    // }
+
+$user = null; // default null
+
+if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+    $user_id = intval($_SESSION['user']['id']);
+    $q       = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
+    $user    = mysqli_fetch_assoc($q);
+}
+
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -416,15 +444,15 @@
                     <!-- Jika user login -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="<?= $_SESSION['user']['photo'] ?? 'assets/img/default-user.png' ?>" 
-                            alt="profile" 
-                            class="rounded-circle me-2" 
-                            width="35" height="35" 
+                            <img src="<?php echo ! empty($user['profile_photo']) ? 'auth/' . $user['profile_photo'] : 'assets/img/default-user.png' ?>"
+                            alt="profile"
+                            class="rounded-circle me-2"
+                            width="35" height="35"
                             style="object-fit: cover;">
-                            <?= htmlspecialchars($_SESSION['user']['name']) ?>
+                            <?php echo htmlspecialchars($_SESSION['user']['name']) ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
+                            <li><a class="dropdown-item" href="auth/profil_user.php">Profil Saya</a></li>
                             <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>

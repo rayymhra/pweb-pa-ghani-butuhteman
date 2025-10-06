@@ -1,83 +1,90 @@
 <?php
+    session_start();
 
-$host = "localhost";
-$user = "root"; 
-$pass = "";     
-$db   = "butuh_teman";
+    $host = "localhost";
+    $user = "root";
+    $pass = "";
+    $db   = "butuh_teman";
 
-$conn = mysqli_connect($host, $user, $pass, $db);
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
-}
+    $conn = mysqli_connect($host, $user, $pass, $db);
+    if (! $conn) {
+        die("Koneksi gagal: " . mysqli_connect_error());
+    }
 
-session_start();
-$user_id = $_SESSION['user_id'];
-$q = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
-$user = mysqli_fetch_assoc($q);
+    // Check if user is logged in
+    if (! isset($_SESSION['user'])) {
+        header("Location: login.php");
+        exit;
+    }
 
+    $user_id = $_SESSION['user']['id'];
+    $q       = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
+    $user    = mysqli_fetch_assoc($q);
 
-// ====== update profil umum ======
-if (isset($_POST['update_profile'])) {
-    $name     = mysqli_real_escape_string($conn, $_POST['name']);
-    $location = mysqli_real_escape_string($conn, $_POST['location']);
-    $phone    = mysqli_real_escape_string($conn, $_POST['phone']);
-    $gender   = mysqli_real_escape_string($conn, $_POST['gender']);
-    $password = $_POST['password'];
-    
-    // upload foto jika ada
-    $update_photo = "";
-    if (!empty($_FILES['profile_photo']['name'])) {
-        if (!is_dir("uploads")) mkdir("uploads");
-        $fileName = time() . "_" . basename($_FILES['profile_photo']['name']);
-        $target   = "uploads/" . $fileName;
-        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $target)) {
-            $update_photo = ", profile_photo='$target'";
+    // ====== update profil umum ======
+    if (isset($_POST['update_profile'])) {
+        $name     = mysqli_real_escape_string($conn, $_POST['name']);
+        $location = mysqli_real_escape_string($conn, $_POST['location']);
+        $phone    = mysqli_real_escape_string($conn, $_POST['phone']);
+        $gender   = mysqli_real_escape_string($conn, $_POST['gender']);
+        $password = $_POST['password'];
+
+        // upload foto jika ada
+        $update_photo = "";
+        if (! empty($_FILES['profile_photo']['name'])) {
+            if (! is_dir("uploads")) {
+                mkdir("uploads");
+            }
+
+            $fileName = time() . "_" . basename($_FILES['profile_photo']['name']);
+            $target   = "uploads/" . $fileName;
+            if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $target)) {
+                $update_photo = ", profile_photo='$target'";
+            }
         }
+
+        // update password jika diisi
+        $update_password = "";
+        if (! empty($password)) {
+            $hashed          = password_hash($password, PASSWORD_DEFAULT);
+            $update_password = ", password='$hashed'";
+        }
+
+        $sql = "UPDATE users SET
+    name='$name',
+    location='$location',
+    phone='$phone',
+    gender='$gender'
+    $update_photo
+    $update_password
+    WHERE id=$user_id";
+
+        mysqli_query($conn, $sql);
+        header("Location: profil_user.php?success=1");
+        exit;
     }
-    
-    // update password jika diisi
-    $update_password = "";
-    if (!empty($password)) {
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $update_password = ", password='$hashed'";
+
+    // ====== update about khusus ======
+    if (isset($_POST['update_about'])) {
+        $bio = mysqli_real_escape_string($conn, $_POST['bio']);
+        $sql = "UPDATE users SET bio='$bio' WHERE id=$user_id";
+        mysqli_query($conn, $sql);
+        header("Location: profil_user.php?about_updated=1");
+        exit;
     }
-    
-    $sql = "UPDATE users SET 
-        name='$name',
-        location='$location',
-        phone='$phone',
-        gender='$gender'
-        $update_photo
-        $update_password
-        WHERE id=$user_id";
-    
-    mysqli_query($conn, $sql);
-    header("Location: profil_user.php?success=1");
-    exit;
-}
 
-// ====== update about khusus ======
-if (isset($_POST['update_about'])) {
-    $bio = mysqli_real_escape_string($conn, $_POST['bio']);
-    $sql = "UPDATE users SET bio='$bio' WHERE id=$user_id";
-    mysqli_query($conn, $sql);
-    header("Location: profil_user.php?about_updated=1");
-    exit;
-}
+    // ====== update hobby khusus ======
+    if (isset($_POST['update_hobby'])) {
+        $hobby = mysqli_real_escape_string($conn, $_POST['hobby']);
+        $sql   = "UPDATE users SET hobby='$hobby' WHERE id=$user_id";
+        mysqli_query($conn, $sql);
+        header("Location: profil_user.php?hobby_updated=1");
+        exit;
+    }
 
-// ====== update hobby khusus ======
-if (isset($_POST['update_hobby'])) {
-    $hobby = mysqli_real_escape_string($conn, $_POST['hobby']);
-    $sql = "UPDATE users SET hobby='$hobby' WHERE id=$user_id";
-    mysqli_query($conn, $sql);
-    header("Location: profil_user.php?hobby_updated=1");
-    exit;
-}
-
-
-// ====== ambil data user ======
-$q = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
-$user = mysqli_fetch_assoc($q);
+    // ====== ambil data user ======
+    $q    = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
+    $user = mysqli_fetch_assoc($q);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -85,27 +92,27 @@ $user = mysqli_fetch_assoc($q);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil Client</title>
-    
+
     <!-- BOOTSTRAP CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&display=swap');
-        * { 
-            font-family: "Josefin Sans", sans-serif; 
+        * {
+            font-family: "Josefin Sans", sans-serif;
         }
 
         /* NAVBARRRRRR */
         .navbar {
             background-color: #FECE6A !important;
         }
-        
+
         .nav-link {
             color: #315DB4;
             font-weight: 500;
         }
-        
+
         /* Pastikan semua nav-item rata tengah */
         .navbar .nav-link,
         .navbar .btn-login {
@@ -116,7 +123,7 @@ $user = mysqli_fetch_assoc($q);
             padding-top: 0;
             padding-bottom: 0;
         }
-        
+
         /* Supaya foto profil benar-benar sejajar */
         .navbar .nav-link img {
             width: 35px;
@@ -124,14 +131,14 @@ $user = mysqli_fetch_assoc($q);
             object-fit: cover;
             border-radius: 50%;
         }
-        
+
         /* Untuk tombol login */
         .btn-login {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .btn-login {
             background-color: #06206C; /* biru navy */
             color: #FECE6A; /* kuning */
@@ -143,7 +150,7 @@ $user = mysqli_fetch_assoc($q);
             transition: all 0.3s ease;
             /* box-shadow: 0 3px 8px rgba(6, 32, 108, 0.3); */
         }
-        
+
         .btn-login:hover {
             background-color: #FECE6A; /* kuning */
             color: #06206C; /* biru navy */
@@ -151,7 +158,7 @@ $user = mysqli_fetch_assoc($q);
             box-shadow: 0 5px 12px rgba(254, 206, 106, 0.4);
             transform: translateY(-2px);
         }
-        
+
         .btn-login:active {
             transform: scale(0.95);
             background-color: #e6b95f; /* kuning gelap */
@@ -159,49 +166,49 @@ $user = mysqli_fetch_assoc($q);
             color: #06206C;
         }
 
-        .actived { 
-            color: #06206C; 
-            font-weight: 600; 
+        .actived {
+            color: #06206C;
+            font-weight: 600;
         }
 
-        .profile-card { 
-            border: 1px solid #f2e6c9; 
-            border-radius: 12px; 
-            background-color: #fffdf7; 
-            padding: 1.5rem; 
-            margin-top: 1rem; 
+        .profile-card {
+            border: 1px solid #f2e6c9;
+            border-radius: 12px;
+            background-color: #fffdf7;
+            padding: 1.5rem;
+            margin-top: 1rem;
         }
 
-        .profile-img { 
-            width: 100px; 
-            height: 100px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            margin-right: 1rem; 
-            border: 3px solid #FECE6A; 
+        .profile-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 1rem;
+            border: 3px solid #FECE6A;
         }
-        .profile-name { 
-            font-size: 1.3rem; 
-            font-weight: 600; 
-        }
-
-        .box { 
-            background: #fff; 
-            border-radius: 12px; 
-            padding: 1rem 1.2rem; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-            margin-bottom: 1rem; 
+        .profile-name {
+            font-size: 1.3rem;
+            font-weight: 600;
         }
 
-        .tag { 
-            background-color: #FECE6A; 
-            padding: 5px 12px; 
-            border-radius: 20px; 
-            font-size: 0.85rem; 
-            font-weight: 500; 
-            margin: 3px; 
-            display: inline-block; 
-            color: #333; 
+        .box {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            background-color: #FECE6A;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: 3px;
+            display: inline-block;
+            color: #333;
         }
 
         .profile-img-nav {
@@ -213,7 +220,7 @@ $user = mysqli_fetch_assoc($q);
     </style>
 </head>
 <body class="bg-light">
-    
+
     <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="">
@@ -225,31 +232,31 @@ $user = mysqli_fetch_assoc($q);
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
+                        <a class="nav-link actived" aria-current="page" href="../index.php">BERANDA</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
+                        <a class="nav-link" aria-current="page" href="../index.php#tentang">TENTANG</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
+                        <a class="nav-link" aria-current="page" href="../index.php#cari-teman">CARI TEMAN</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
+                        <a class="nav-link" aria-current="page" href="../index.php#komunitas">KOMUNITAS</a>
                     </li>
-                    
+
                     <?php if (isset($_SESSION['user'])): ?>
                     <!-- Jika user login -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="<?= $_SESSION['user']['photo'] ?? 'assets/img/default-user.png' ?>" 
-                            alt="profile" 
-                            class="rounded-circle me-2" 
-                            width="35" height="35" 
+                            <img src="<?php echo ! empty($user['profile_photo']) ? $user['profile_photo'] : 'assets/img/default-user.png' ?>"
+                            alt="profile"
+                            class="rounded-circle me-2"
+                            width="35" height="35"
                             style="object-fit: cover;">
-                            <?= htmlspecialchars($_SESSION['user']['name']) ?>
+                            <?php echo htmlspecialchars($_SESSION['user']['name']) ?>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="profile.php">Profil Saya</a></li>
+                            <li><a class="dropdown-item" href="profil_user.php">Profil Saya</a></li>
                             <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
@@ -262,28 +269,28 @@ $user = mysqli_fetch_assoc($q);
                     </li>
                     <?php endif; ?>
                 </ul>
-                
+
             </div>
         </div>
     </nav>
-    
+
     <!-- PROFILE CARD -->
     <div class="container">
         <div class="profile-card shadow-sm">
             <div class="d-flex">
-                <img 
-                src="<?= !empty($user['profile_photo']) ? $user['profile_photo'] : "../assets/img/user.jpg" ?>" 
-                class="profile-img" 
+                <img
+                src="<?php echo ! empty($user['profile_photo']) ? $user['profile_photo'] : "../assets/img/user.jpg" ?>"
+                class="profile-img"
                 alt="Profile"
                 >
                 <div>
-                    <div class="profile-name"><?= $user['name'] ?></div>
+                    <div class="profile-name"><?php echo $user['name'] ?></div>
                     <div class="text-muted small">
-                        <i class="bi bi-house"></i> 
-                        <?= !empty($user['location']) ? $user['location'] : 'Alamat belum ditentukan' ?> 
+                        <i class="bi bi-house"></i>
+                        <?php echo ! empty($user['location']) ? $user['location'] : 'Alamat belum ditentukan' ?>
                         <br>
-                        
-                        <i class="bi bi-gender-ambiguous"></i> <?= $user['gender'] ?>
+
+                        <i class="bi bi-gender-ambiguous"></i>                                                               <?php echo $user['gender'] ?>
                     </div>
                     <button class="btn btn-outline-primary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#editModal">
                         <i class="bi bi-pencil-square"></i> Edit Profil
@@ -291,11 +298,11 @@ $user = mysqli_fetch_assoc($q);
                 </div>
             </div>
         </div>
-        
+
         <div class="my-3 text-end">
             Mau jadi Teman? <a href="" class="btn btn-warning">Join Jadi Teman</a>
         </div>
-        
+
         <!-- TAB NAVIGATION -->
         <ul class="nav nav-tabs mt-3">
             <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#about">About</a></li>
@@ -303,7 +310,7 @@ $user = mysqli_fetch_assoc($q);
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#history">Riwayat Booking</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#reviews">Ulasan Saya</a></li>
         </ul>
-        
+
         <div class="tab-content mt-3">
             <!-- ABOUT -->
             <div class="tab-pane fade show active" id="about">
@@ -317,19 +324,19 @@ $user = mysqli_fetch_assoc($q);
                                     <i class="bi bi-plus-lg"></i>
                                 </button>
                             </div>
-                            <?php 
-                            $hobbies = !empty($user['hobby']) ? explode(",", $user['hobby']) : [];
-                            if (count($hobbies) > 0) {
-                                foreach ($hobbies as $h) {
-                                    echo "<span class='tag'> ".trim($h)."</span> ";
+                            <?php
+                                $hobbies = ! empty($user['hobby']) ? explode(",", $user['hobby']) : [];
+                                if (count($hobbies) > 0) {
+                                    foreach ($hobbies as $h) {
+                                        echo "<span class='tag'> " . trim($h) . "</span> ";
+                                    }
+                                } else {
+                                    echo "<p class='text-muted'>Belum ada hobby</p>";
                                 }
-                            } else {
-                                echo "<p class='text-muted'>Belum ada hobby</p>";
-                            }
                             ?>
                         </div>
                     </div>
-                    
+
                     <!-- ABOUT & STATISTIK -->
                     <div class="col-md-8">
                         <div class="box">
@@ -339,17 +346,17 @@ $user = mysqli_fetch_assoc($q);
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
                             </div>
-                            <p><?= !empty($user['bio']) ? $user['bio'] : 'Belum ada deskripsi.' ?></p>
+                            <p><?php echo ! empty($user['bio']) ? $user['bio'] : 'Belum ada deskripsi.' ?></p>
                             <hr>
                             <h6 class="fw-bold text-primary">Statistik</h6>
-                            <p class="mb-1">Booking Dilakukan: <?= $user['booking_count'] ?? 0 ?></p>
-                            <p class="mb-0">Ulasan Diberikan: <?= $user['review_count'] ?? 0 ?></p>
+                            <p class="mb-1">Booking Dilakukan:                                                               <?php echo $user['booking_count'] ?? 0 ?></p>
+                            <p class="mb-0">Ulasan Diberikan:                                                              <?php echo $user['review_count'] ?? 0 ?></p>
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
-            
+
             <!-- KOMUNITAS -->
             <div class="tab-pane fade" id="community">
                 <div class="box">
@@ -357,14 +364,14 @@ $user = mysqli_fetch_assoc($q);
                     <p class="text-muted">Fitur komunitas belum tersedia.</p>
                 </div>
             </div>
-            
+
             <!-- RIWAYAT BOOKING -->
             <div class="tab-pane fade" id="history">
                 <div class="box">
                     <p class="text-muted">📅 Riwayat booking akan tampil di sini.</p>
                 </div>
             </div>
-            
+
             <!-- ULASAN -->
             <div class="tab-pane fade" id="reviews">
                 <div class="box">
@@ -386,7 +393,7 @@ $user = mysqli_fetch_assoc($q);
                         <input type="hidden" name="update_about" value="1">
                         <div class="mb-3">
                             <label class="form-label">Deskripsi Diri</label>
-                            <textarea name="bio" rows="4" class="form-control"><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+                            <textarea name="bio" rows="4" class="form-control"><?php echo htmlspecialchars($user['bio'] ?? '') ?></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-save"></i> Simpan About
@@ -396,58 +403,58 @@ $user = mysqli_fetch_assoc($q);
             </div>
         </div>
     </div>
-    
+
     <!-- MODAL EDIT PROFIL -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Profil</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" enctype="multipart/form-data">
-                    <input type="hidden" name="update_profile" value="1">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nama</label>
-                            <input type="text" name="name" class="form-control" value="<?= $user['name'] ?>">
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Edit Profil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="update_profile" value="1">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nama</label>
+                                <input type="text" name="name" class="form-control" value="<?php echo $user['name'] ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Alamat</label>
+                                <input type="text" name="location" class="form-control" value="<?php echo $user['location'] ?>">
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Alamat</label>
-                            <input type="text" name="location" class="form-control" value="<?= $user['location'] ?>">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nomor HP</label>
+                                <input type="text" name="phone" class="form-control" value="<?php echo $user['phone'] ?>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Jenis Kelamin</label>
+                                <select name="gender" class="form-select">
+                                    <option                                            <?php echo $user['gender'] == 'Pria' ? 'selected' : '' ?>>Pria</option>
+                                    <option                                            <?php echo $user['gender'] == 'Wanita' ? 'selected' : '' ?>>Wanita</option>
+                                    <option                                            <?php echo $user['gender'] == 'Lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nomor HP</label>
-                            <input type="text" name="phone" class="form-control" value="<?= $user['phone'] ?>">
+                        <div class="mb-3">
+                            <label class="form-label">Foto Profil</label>
+                            <input type="file" name="profile_photo" class="form-control">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Jenis Kelamin</label>
-                            <select name="gender" class="form-select">
-                                <option <?= $user['gender']=='Pria'?'selected':'' ?>>Pria</option>
-                                <option <?= $user['gender']=='Wanita'?'selected':'' ?>>Wanita</option>
-                                <option <?= $user['gender']=='Lainnya'?'selected':'' ?>>Lainnya</option>
-                            </select>
+                        <div class="mb-3">
+                            <label class="form-label">Password Baru</label>
+                            <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ganti">
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Foto Profil</label>
-                        <input type="file" name="profile_photo" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password Baru</label>
-                        <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ganti">
-                    </div>
-                    <button type="submit" class="btn btn-warning w-100">
-                        <i class="bi bi-save"></i> Simpan Perubahan
-                    </button>
-                </form>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-save"></i> Simpan Perubahan
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <!-- MODAL EDIT HOBBY -->
     <div class="modal fade" id="hobbyModal" tabindex="-1">
@@ -462,8 +469,8 @@ $user = mysqli_fetch_assoc($q);
                         <input type="hidden" name="update_hobby" value="1">
                         <div class="mb-3">
                             <label class="form-label">Daftar Hobby (pisahkan dengan koma)</label>
-                            <input type="text" name="hobby" class="form-control" 
-                            value="<?= htmlspecialchars($user['hobby'] ?? '') ?>">
+                            <input type="text" name="hobby" class="form-control"
+                            value="<?php echo htmlspecialchars($user['hobby'] ?? '') ?>">
                         </div>
                         <button type="submit" class="btn btn-success w-100">
                             <i class="bi bi-save"></i> Simpan Hobby
@@ -473,7 +480,7 @@ $user = mysqli_fetch_assoc($q);
             </div>
         </div>
     </div>
-    
+
     <!-- BOOTSTRAP JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
