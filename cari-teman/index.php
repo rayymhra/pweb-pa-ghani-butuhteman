@@ -289,7 +289,7 @@ $user_id = $user_session['id'];
                 <?php else: ?>
                 <!-- Jika belum login -->
                 <li class="nav-item">
-                    <a href="auth/login.php" class="btn btn-login ms-3">Login</a>
+                    <a href="../auth/login.php" class="btn btn-login ms-3">Login</a>
                 </li>
                 <?php endif; ?>
             </ul>
@@ -397,10 +397,10 @@ $user_id = $user_session['id'];
                     <i class="bi bi-chat-dots"></i> Chat
                   </button>
                 <?php else: ?>
-                  <button class="btn btn-primary" onclick="window.location.href='../login.php'">
+                  <button class="btn btn-primary" onclick="window.location.href='../auth/login.php'">
                     <i class="bi bi-calendar-check"></i> Booking
                   </button>
-                  <button class="btn btn-primary" onclick="window.location.href='../login.php'">
+                  <button class="btn btn-primary" onclick="window.location.href='../auth/login.php'">
                     <i class="bi bi-chat-dots"></i> Chat
                   </button>
                 <?php endif; ?>

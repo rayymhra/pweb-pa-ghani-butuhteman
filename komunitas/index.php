@@ -1,3 +1,133 @@
+<?php
+session_start();
+require_once '../auth/config.php';
+
+// Check if user is logged in
+$user_session = null;
+$current_user_id = null;
+if (isset($_SESSION['user'])) {
+    $user_session = $_SESSION['user'];
+    $current_user_id = $user_session['id'];
+}
+
+// Handle join community
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['join_community'])) {
+    // Check if user is logged in
+    if (!isset($current_user_id)) {
+        $_SESSION['join_error'] = "Anda harus login terlebih dahulu untuk bergabung dengan komunitas.";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+    
+    $community_id = intval($_POST['community_id']);
+    
+    // Check if already a member
+    $check_membership = "SELECT id FROM community_memberships WHERE community_id = ? AND user_id = ?";
+    if ($stmt = mysqli_prepare($conn, $check_membership)) {
+        mysqli_stmt_bind_param($stmt, "ii", $community_id, $current_user_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if (mysqli_num_rows($result) == 0) {
+            // Join community
+            $join_query = "INSERT INTO community_memberships (community_id, user_id, role) VALUES (?, ?, 'member')";
+            if ($stmt = mysqli_prepare($conn, $join_query)) {
+                mysqli_stmt_bind_param($stmt, "ii", $community_id, $current_user_id);
+                mysqli_stmt_execute($stmt);
+                $_SESSION['join_success'] = "Berhasil bergabung dengan komunitas!";
+                
+                // Update the communities array to reflect the new membership
+                foreach ($communities as &$community) {
+                    if ($community['id'] == $community_id) {
+                        $community['is_member'] = 1;
+                        $community['member_count'] += 1;
+                        break;
+                    }
+                }
+            }
+        } else {
+            $_SESSION['join_error'] = "Anda sudah bergabung dengan komunitas ini.";
+        }
+        mysqli_stmt_close($stmt);
+    }
+    
+    // Redirect to prevent form resubmission
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+// Get all communities from database
+$communities_query = "SELECT c.*, u.name as creator_name, 
+                     COUNT(cm.id) as member_count,
+                     (SELECT COUNT(*) FROM community_memberships WHERE community_id = c.id AND user_id = ?) as is_member
+                     FROM communities c 
+                     LEFT JOIN users u ON c.created_by = u.id 
+                     LEFT JOIN community_memberships cm ON c.id = cm.community_id 
+                     GROUP BY c.id 
+                     ORDER BY c.name ASC";
+$communities = [];
+
+if ($stmt = mysqli_prepare($conn, $communities_query)) {
+    $user_id_param = isset($current_user_id) ? $current_user_id : 0;
+    mysqli_stmt_bind_param($stmt, "i", $user_id_param);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $communities = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    mysqli_stmt_close($stmt);
+}
+
+// Get community members for a specific community
+function getCommunityMembers($conn, $community_id) {
+    $members_query = "SELECT u.id, u.name, u.profile_photo, u.hobby, u.bio, cm.role, cm.joined_at 
+                     FROM community_memberships cm 
+                     JOIN users u ON cm.user_id = u.id 
+                     WHERE cm.community_id = ? 
+                     ORDER BY 
+                         CASE cm.role 
+                             WHEN 'owner' THEN 1 
+                             WHEN 'admin' THEN 2 
+                             ELSE 3 
+                         END,
+                         cm.joined_at ASC 
+                     LIMIT 8";
+    $members = [];
+    
+    if ($stmt = mysqli_prepare($conn, $members_query)) {
+        mysqli_stmt_bind_param($stmt, "i", $community_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $members = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
+    }
+    
+    return $members;
+}
+
+// Get community by ID
+function getCommunityById($conn, $community_id, $current_user_id = null) {
+    $user_id_param = $current_user_id ? $current_user_id : 0;
+    
+    $query = "SELECT c.*, u.name as creator_name, 
+              COUNT(cm.id) as member_count,
+              (SELECT COUNT(*) FROM community_memberships WHERE community_id = c.id AND user_id = ?) as is_member
+              FROM communities c 
+              LEFT JOIN users u ON c.created_by = u.id 
+              LEFT JOIN community_memberships cm ON c.id = cm.community_id 
+              WHERE c.id = ? 
+              GROUP BY c.id";
+    
+    if ($stmt = mysqli_prepare($conn, $query)) {
+        mysqli_stmt_bind_param($stmt, "ii", $user_id_param, $community_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $community = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+        return $community;
+    }
+    return null;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -5,156 +135,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Komunitas - Butuh Teman</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <style>
-        /* Semua style yang sudah ada tetap dipertahankan */
-        .footer {
-            background: linear-gradient(135deg, #F4D03F, #F7DC6F);
-            padding: 60px 40px 30px;
-            color: #0D47A1;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 50px;
-            align-items: start;
-        }
-
-        .footer-section h2 {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 25px;
-            line-height: 1.2;
-            color: #0D47A1;
-        }
-
-        .footer-section h3 {
-            font-size: 24px;
+        .member-count {
+            color: white;
             font-weight: 600;
-            margin-bottom: 20px;
-            color: #0D47A1;
-            border-bottom: 2px solid #0D47A1;
-            padding-bottom: 8px;
-            display: inline-block;
-        }
-
-        .footer-section p {
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 15px;
-            color: #1565C0;
-        }
-
-        .footer-section ul {
-            list-style: none;
-        }
-
-        .footer-section ul li {
-            margin-bottom: 12px;
-        }
-
-        .footer-section ul li a {
-            color: #1976D2;
-            text-decoration: none;
-            font-size: 18px;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .footer-section ul li a:hover {
-            color: #0D47A1;
-            text-decoration: underline;
-        }
-
-        .contact-item {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 8px;
             font-size: 16px;
-            color: #1565C0;
         }
 
-        .contact-item i {
-            font-size: 20px;
-            margin-right: 12px;
-            color: #2196F3;
-            width: 25px;
-        }
-
-        .social-links {
+        .community-actions {
             display: flex;
             gap: 15px;
             margin-top: 20px;
-        }
-
-        .social-links a {
-            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            width: 45px;
-            height: 45px;
-            background-color: #2196F3;
-            color: white;
-            border-radius: 50%;
-            font-size: 20px;
-            text-decoration: none;
-            transition: all 0.3s ease;
+            flex-wrap: wrap;
         }
 
-        .social-links a:hover {
-            background-color: #1976D2;
-            transform: translateY(-2px);
-        }
-
-        .footer-bottom {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 25px;
-            border-top: 1px solid rgba(33, 150, 243, 0.3);
-            font-size: 16px;
-            color: #1976D2;
-            font-weight: 500;
-        }
-
-        @media (max-width: 1024px) {
-            .footer-content {
-                grid-template-columns: 1fr 1fr;
-                gap: 40px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .footer {
-                padding: 40px 20px 20px;
-            }
-            
-            .footer-content {
-                grid-template-columns: 1fr;
-                gap: 35px;
-                text-align: center;
-            }
-
-            .footer-section h2 {
-                font-size: 28px;
-            }
-
-            .footer-section h3 {
-                font-size: 20px;
-            }
-
-            .contact-item {
-                justify-content: center;
-            }
-
-            .social-links {
-                justify-content: center;
-            }
-        }
-
+        /* All your existing CSS styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -174,10 +176,11 @@
         }
 
         .navbar {
-    background-color: #FECE6A !important;
-    position: sticky;
-    top: 0;
-    z-index: 1020;}
+            background-color: #FECE6A !important;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
 
         .nav-link {
             color: #315DB4;
@@ -196,22 +199,22 @@
             padding: 25px;
         }
 
-  .sidebar {
-    width: 290px;
-    background: white;
-    border-radius: 15px;
-    padding: 15px; /* Padding diperkecil */
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    height: 550px; /* Tinggi diperpendek */
-    position: sticky;
-    top: 90px; /* Disesuaikan dengan tinggi navbar */
-    border: 3px solid #2c4aa5;
-    margin-left: 35px;
-    z-index: 1010;
-   
-} 
+        .sidebar {
+            width: 290px;
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            height: 550px;
+            position: sticky;
+            top: 90px;
+            border: 3px solid #2c4aa5;
+            margin-left: 35px;
+            z-index: 1010;
+        }
+
         #main-page {
-            margin-top: -40px; /* tarik lebih dekat navbar */
+            margin-top: -40px;
         }
 
         .page-title {
@@ -222,15 +225,15 @@
         }
 
         .page-title span {
-            color: #294ebe; /* warna biru lebih terang untuk "TEMAN" */
+            color: #294ebe;
         }
 
         .page-subtitle {
-            color: #1c3c75; /* lebih lembut seperti di gambar */
+            color: #1c3c75;
             font-size: 16px;
             margin-bottom: 18px;
             font-weight: 500;
-            line-height: 1.3; /* lebih lega */
+            line-height: 1.3;
         }
 
         .main-grid-container {
@@ -403,6 +406,13 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            overflow: hidden;
+        }
+
+        .category-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .category-name {
@@ -411,107 +421,6 @@
             color: #333;
         }
 
-        .footer {
-            background: #FECE6A;
-            padding: 15px 0;
-            margin-top: 30px;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .footer-left {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-
-        .footer-section {
-            text-align: left;
-        }
-
-        .footer-section h4 {
-            color: #333;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-
-        .footer-section p {
-            color: #555;
-            font-size: 12px;
-            margin: 2px 0;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .social-icon {
-            width: 30px;
-            height: 30px;
-            background: #333;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .copyright {
-            text-align: center;
-            color: #333;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-
-        .login-section {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 10px;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .login-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        
-        .login-options {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        
-        .login-option {
-            padding: 10px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .login-option:hover {
-            background: #f0f0f0;
-            border-color: #FECE6A;
-        }
-
-        /* Styles untuk halaman komunitas */
         .community-profiles {
             display: grid;
             grid-template-columns: 1fr;
@@ -539,6 +448,13 @@
             justify-content: center;
             margin-right: 15px;
             font-size: 20px;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .profile-info {
@@ -563,50 +479,219 @@
             font-style: italic;
         }
 
-        .connect-btn {
-            background: #06206C;
-            color: white;
+        .community-header {
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .community-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-join {
+            background: #FECE6A;
+            color: #06206C;
             border: none;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .connect-btn:hover {
-            background: #0d3bb1;
+        .btn-join:hover {
+            background: #f1b93e;
+            transform: translateY(-2px);
+        }
+
+        .btn-chat {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-chat:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-joined {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: not-allowed;
         }
 
         .hidden {
             display: none;
         }
-        
-        /* Tambahan untuk tata letak dengan Bootstrap */
-        .main-container {
+
+        /* Footer styles remain the same */
+        .footer {
+            background: #FECE6A;
+            padding: 60px 40px 30px;
+            color: #0D47A1;
+            margin-top: 50px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 50px;
+            align-items: start;
+        }
+
+        .footer-section h2 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            line-height: 1.2;
+            color: #0D47A1;
+        }
+
+        .footer-section h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #0D47A1;
+            border-bottom: 2px solid #0D47A1;
+            padding-bottom: 8px;
+            display: inline-block;
+        }
+
+        .footer-section p {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #1565C0;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-section ul li a {
+            color: #1976D2;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section ul li a:hover {
+            color: #0D47A1;
+            text-decoration: underline;
+        }
+
+        .contact-item {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #1565C0;
         }
-        
-        .content-wrapper {
-            flex: 1;
-            min-width: 300px;
+
+        .contact-item i {
+            font-size: 20px;
+            margin-right: 12px;
+            color: #2196F3;
+            width: 25px;
         }
-        
-        @media (max-width: 992px) {
-            .sidebar {
-                width: 100%;
-                margin-top: 20px;
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(33, 150, 243, 0.3);
+            font-size: 16px;
+            color: #1976D2;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .footer {
+                padding: 40px 20px 20px;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 35px;
+                text-align: center;
+            }
+
+            .footer-section h2 {
+                font-size: 28px;
+            }
+
+            .footer-section h3 {
+                font-size: 20px;
+            }
+
+            .contact-item {
+                justify-content: center;
+            }
+
+            .social-links {
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
+    <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
         <div class="container">
-            <a class="navbar-brand" href="">
-                <img src="assets/img/logo butuh teman.png" alt="" width="50">
+            <a class="navbar-brand" href="../index.php">
+                <img src="../assets/img/logo butuh teman.png" alt="" width="50">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -614,23 +699,68 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
+                        <a class="nav-link" aria-current="page" href="../index.php">BERANDA</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
+                        <a class="nav-link" aria-current="page" href="../index.php#tentang">TENTANG</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
+                        <a class="nav-link" aria-current="page" href="../cari-teman/index.php">CARI TEMAN</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
+                        <a class="nav-link actived" aria-current="page" href="index.php">KOMUNITAS</a>
                     </li>
+
+                    <?php if (isset($_SESSION['user'])): ?>
+                    <!-- Jika user login -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="<?php echo !empty($user_session['profile_photo']) ? '../auth/' . htmlspecialchars($user_session['profile_photo']) : '../assets/img/user.jpg' ?>"
+                            alt="profile"
+                            class="rounded-circle me-2"
+                            width="35" height="35"
+                            style="object-fit: cover;">
+                            <?php echo htmlspecialchars($user_session['name']) ?>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <?php
+                            $profile_link = '../auth/profil_user.php';
+                            if ($user_session['role'] === 'Friend') {
+                                $profile_link = '../auth/profil_teman.php';
+                            } elseif ($user_session['role'] === 'Admin') {
+                                $profile_link = '../admin/index.php';
+                            }
+                            ?>
+                            <li><a class="dropdown-item" href="<?php echo $profile_link; ?>">Profil Saya</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="../auth/logout.php">Logout</a></li>
+                        </ul>
+                    </li>
+                    <?php else: ?>
+                    <!-- Jika belum login -->
+                    <li class="nav-item">
+                        <a href="../auth/login.php" class="btn btn-primary ms-3">Login</a>
+                    </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
+        <?php 
+        // Show success/error messages from session
+        if (isset($_SESSION['join_success'])): 
+            echo '<div class="alert alert-success alert-dismissible fade show" role="alert">' . $_SESSION['join_success'] . 
+                 '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+            unset($_SESSION['join_success']);
+        elseif (isset($_SESSION['join_error'])): 
+            echo '<div class="alert alert-warning alert-dismissible fade show" role="alert">' . $_SESSION['join_error'] . 
+                 '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+            unset($_SESSION['join_error']);
+        endif; 
+        ?>
+
         <div class="row">
             <!-- Konten Utama -->
             <div class="col-lg-8 col-md-7">
@@ -666,7 +796,7 @@
                             <!-- Grid untuk konten bawah -->
                             <div class="bottom-content">
                                 <div class="content-image">
-                                    <img src="c:\Users\nka.raa\Pictures\Screenshots\Screenshot 2025-09-04 090021.png" alt="Aktivitas Komunitas">
+                                    <img src="../assets/img/kom.webp" alt="Aktivitas Komunitas">
                                 </div>
                                 
                                 <div class="content-text">
@@ -678,8 +808,13 @@
 
                     <!-- Halaman Komunitas (Akan ditampilkan ketika kategori dipilih) -->
                     <div id="community-page" class="hidden">
-                        <h1 class="page-title" id="community-category-title">Komunitas</h1>
-                        <p class="page-subtitle" id="community-category-desc">Temukan orang-orang dengan minat yang sama dan bangun hubungan yang bermakna.</p>
+                        <div class="community-header" id="community-header">
+                            <h1 class="page-title" id="community-category-title">Komunitas</h1>
+                            <p class="page-subtitle" id="community-category-desc">Temukan orang-orang dengan minat yang sama dan bangun hubungan yang bermakna.</p>
+                            <div class="community-actions" id="community-actions">
+                                <!-- Join and Chat buttons will be added here by JavaScript -->
+                            </div>
+                        </div>
                         
                         <div class="community-profiles" id="community-profiles-container">
                             <!-- Profil akan diisi oleh JavaScript -->
@@ -691,40 +826,20 @@
             <!-- Sidebar -->
             <div class="col-lg-4 col-md-5">
                 <aside class="sidebar">
-                    <div class="sidebar-title">Kategori</div>
+                    <div class="sidebar-title">Daftar Komunitas</div>
                     <div class="category-list">
-                        <div class="category-item" data-category="musik">
-                            <div class="category-icon" style="background: #ff6b6b;">🎵</div>
-                            <div class="category-name">MUSIK</div>
-                        </div>
-                        <div class="category-item" data-category="kuliner">
-                            <div class="category-icon" style="background: #4ecdc4;">🍽️</div>
-                            <div class="category-name">KULINER</div>
-                        </div>
-                        <div class="category-item" data-category="travel">
-                            <div class="category-icon" style="background: #45b7d1;">✈️</div>
-                            <div class="category-name">TRAVEL</div>
-                        </div>
-                        <div class="category-item" data-category="game">
-                            <div class="category-icon" style="background: #f39c12;">🎮</div>
-                            <div class="category-name">GAME</div>
-                        </div>
-                        <div class="category-item" data-category="olahraga">
-                            <div class="category-icon" style="background: #e74c3c;">⚽</div>
-                            <div class="category-name">OLAHRAGA</div>
-                        </div>
-                        <div class="category-item" data-category="teknologi">
-                            <div class="category-icon" style="background: #9b59b6;">💻</div>
-                            <div class="category-name">TEKNOLOGI</div>
-                        </div>
-                        <div class="category-item" data-category="fotografi">
-                            <div class="category-icon" style="background: #34495e;">📷</div>
-                            <div class="category-name">FOTOGRAFI</div>
-                        </div>
-                        <div class="category-item" data-category="hiking">
-                            <div class="category-icon" style="background: #27ae60;">🏔️</div>
-                            <div class="category-name">HIKING</div>
-                        </div>
+                        <?php foreach ($communities as $community): ?>
+                            <div class="category-item" data-community-id="<?php echo $community['id']; ?>">
+                                <div class="category-icon">
+                                    <?php if (!empty($community['photo'])): ?>
+                                        <img src="<?php echo '../admin/' .   htmlspecialchars($community['photo']); ?>" alt="<?php echo htmlspecialchars($community['name']); ?>">
+                                    <?php else: ?>
+                                        <i class="bi bi-people-fill"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="category-name"><?php echo htmlspecialchars($community['name']); ?></div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 </aside>
             </div>
@@ -741,10 +856,10 @@
             <div class="footer-section">
                 <h3>Navigasi</h3>
                 <ul>
-                    <li><a href="#home">Home</a></li>
-                    <li><a href="#tentang">Tentang</a></li>
-                    <li><a href="#cari-teman">Cari Teman</a></li>
-                    <li><a href="#komunitas">Komunitas</a></li>
+                    <li><a href="../index.php">Home</a></li>
+                    <li><a href="../index.php#tentang">Tentang</a></li>
+                    <li><a href="../cari-teman/index.php">Cari Teman</a></li>
+                    <li><a href="index.php">Komunitas</a></li>
                 </ul>
             </div>
 
@@ -785,178 +900,180 @@
         </div>
     </footer>
 
-    <script>
-        // Data untuk setiap kategori
-        const categoryData = {
-            musik: {
-                title: "Komunitas Musik",
-                description: "Temukan orang-orang dengan selera musik yang sama. Diskusikan artis favorit, berbagi playlist, dan bahkan buat band bersama!",
-                profiles: [
-                    { name: "Jihan", age: "20 th", job: "mahasiswa", hobby: "Bermain gitar dan menyanyi" },
-                    { name: "Rudi", age: "25 th", job: "musisi", hobby: "Bermain drum dan produksi musik" },
-                    { name: "Sari", age: "22 th", job: "penyanyi", hobby: "Menulis lagu dan bernyanyi" },
-                    { name: "Budi", age: "28 th", job: "produser", hobby: "Mixing dan mastering musik" }
-                ]
-            },
-            kuliner: {
-                title: "Komunitas Kuliner",
-                description: "Bagikan resep, temukan tempat makan terbaik, dan bertemu dengan sesama food enthusiast.",
-                profiles: [
-                    { name: "Dewi", age: "26 th", job: "koki", hobby: "Memasak masakan tradisional" },
-                    { name: "Anton", age: "30 th", job: "food vlogger", hobby: "Mencari kuliner street food" },
-                    { name: "Maya", age: "24 th", job: "pastry chef", hobby: "Membuat kue dan dessert" },
-                    { name: "Rina", age: "27 th", job: "food photographer", hobby: "Memotret makanan" }
-                ]
-            },
-            travel: {
-                title: "Komunitas Travel",
-                description: "Bertukar cerita perjalanan, tips backpacking, dan rencanakan trip bersama ke destinasi impian.",
-                profiles: [
-                    { name: "Ahmad", age: "29 th", job: "travel blogger", hobby: "Backpacking ke tempat terpencil" },
-                    { name: "Lina", age: "25 th", job: "tour guide", hobby: "Mengeksplor budaya lokal" },
-                    { name: "Randy", age: "31 th", job: "fotografer", hobby: "Memotret landscape" },
-                    { name: "Dina", age: "23 th", job: "mahasiswa", hobby: "Travelling dengan budget terbatas" }
-                ]
-            },
-            game: {
-                title: "Komunitas Game",
-                description: "Temukan squad untuk bermain game, diskusikan strategi, dan ikuti turnamen bersama.",
-                profiles: [
-                    { name: "Rizky", age: "19 th", job: "esports player", hobby: "Bermain game kompetitif" },
-                    { name: "Sinta", age: "22 th", job: "streamer", hobby: "Live streaming game" },
-                    { name: "Fajar", age: "26 th", job: "game developer", hobby: "Membuat game indie" },
-                    { name: "Nina", age: "24 th", job: "gamer", hobby: "Bermain RPG" }
-                ]
-            },
-            olahraga: {
-                title: "Komunitas Olahraga",
-                description: "Temukan partner olahraga, bagikan tips kesehatan, dan ikuti event olahraga bersama.",
-                profiles: [
-                    { name: "Andi", age: "27 th", job: "personal trainer", hobby: "Fitness dan angkat beban" },
-                    { name: "Rina", age: "24 th", job: "atlet", hobby: "Lari marathon" },
-                    { name: "Budi", age: "29 th", job: "instruktur yoga", hobby: "Yoga dan meditasi" },
-                    { name: "Dewi", age: "26 th", job: "guru olahraga", hobby: "Bulu tangkis" }
-                ]
-            },
-            teknologi: {
-                title: "Komunitas Teknologi",
-                description: "Diskusikan perkembangan teknologi terbaru, berbagi pengetahuan, dan kembangkan skill bersama.",
-                profiles: [
-                    { name: "Rudi", age: "28 th", job: "software engineer", hobby: "Pemrograman dan AI" },
-                    { name: "Sari", age: "25 th", job: "data scientist", hobby: "Analisis data dan machine learning" },
-                    { name: "Budi", age: "30 th", job: "IT consultant", hobby: "Cloud computing dan cybersecurity" },
-                    { name: "Dewi", age: "26 th", job: "UI/UX designer", hobby: "Desain interface dan pengalaman pengguna" }
-                ]
-            },
-            fotografi: {
-                title: "Komunitas Fotografi",
-                description: "Bagikan karya fotografi, pelajari teknik baru, dan eksplorasi dunia melalui lensa kamera.",
-                profiles: [
-                    { name: "Ahmad", age: "32 th", job: "fotografer profesional", hobby: "Fotografi landscape dan alam" },
-                    { name: "Lina", age: "27 th", job: "fotografer wedding", hobby: "Fotografi pernikahan dan portrait" },
-                    { name: "Randy", age: "29 th", job: "fotojurnalis", hobby: "Fotografi dokumenter dan jurnalistik" },
-                    { name: "Dina", age: "24 th", job: "fotografer travel", hobby: "Fotografi perjalanan dan budaya" }
-                ]
-            },
-            hiking: {
-                title: "Komunitas Hiking",
-                description: "Jelajahi alam bersama, bagikan pengalaman pendakian, dan temukan jalur hiking terbaik.",
-                profiles: [
-                    { name: "Andi", age: "31 th", job: "pemandu wisata", hobby: "Pendakian gunung dan camping" },
-                    { name: "Rina", age: "28 th", job: "pegiat alam", hobby: "Hiking dan fotografi alam" },
-                    { name: "Budi", age: "33 th", job: "petualang", hobby: "Explorasi jalur hiking baru" },
-                    { name: "Dewi", age: "26 th", job: "environmentalis", hobby: "Hiking dan konservasi alam" }
-                ]
-            }
-        };
+    <!-- Join Community Form (Hidden) -->
+    <form id="joinCommunityForm" method="POST" style="display: none;">
+        <input type="hidden" name="join_community" value="1">
+        <input type="hidden" name="community_id" id="joinCommunityId">
+    </form>
 
-        // Fungsi untuk menampilkan halaman komunitas berdasarkan kategori
-        function showCommunityPage(category) {
-            // Sembunyikan halaman utama
-            document.getElementById('main-page').classList.add('hidden');
-            
-            // Tampilkan halaman komunitas
-            document.getElementById('community-page').classList.remove('hidden');
-            
-            // Update active state pada kategori
-            const categoryItems = document.querySelectorAll('.category-item');
-            categoryItems.forEach(item => item.classList.remove('active'));
-            
-            // Cari item yang sesuai dengan kategori
-            const activeItem = Array.from(categoryItems).find(item => item.getAttribute('data-category') === category);
-            if (activeItem) {
-                activeItem.classList.add('active');
-            }
-            
-            // Update konten berdasarkan kategori
-            const data = categoryData[category] || {
-                title: `Komunitas ${category.charAt(0).toUpperCase() + category.slice(1)}`,
-                description: "Temukan dan bergabunglah dengan komunitas untuk saling berhubungan dengan orang-orang yang memiliki minat yang sama.",
-                profiles: [
-                    { name: "John", age: "25 th", job: "pekerja", hobby: "Hobi terkait kategori" },
-                    { name: "Jane", age: "23 th", job: "profesional", hobby: "Hobi terkait kategori" },
-                    { name: "Alex", age: "27 th", job: "freelancer", hobby: "Hobi terkait kategori" },
-                    { name: "Sarah", age: "24 th", job: "desainer", hobby: "Hobi terkait kategori" }
-                ]
+<script>
+    // Function to show community page
+    function showCommunityPage(communityId) {
+        console.log('Loading community:', communityId);
+        
+        // Show loading state
+        document.getElementById('community-page').classList.remove('hidden');
+        document.getElementById('main-page').classList.add('hidden');
+        
+        // Update active state
+        const categoryItems = document.querySelectorAll('.category-item');
+        categoryItems.forEach(item => item.classList.remove('active'));
+        
+        const activeItem = document.querySelector(`[data-community-id="${communityId}"]`);
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+        
+        // Show loading message
+        const profilesContainer = document.getElementById('community-profiles-container');
+        profilesContainer.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Memuat data komunitas...</p></div>';
+        
+        // Fetch community data via AJAX
+        fetch(`get_community.php?id=${communityId}`)
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data received:', data);
+                if (data.success) {
+                    updateCommunityPage(data.community, data.members);
+                } else {
+                    throw new Error(data.message || 'Gagal memuat data komunitas');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                profilesContainer.innerHTML = '<div class="alert alert-danger text-center">Error: ' + error.message + '</div>';
+            });
+    }
+
+    // Function to update community page with data
+    function updateCommunityPage(community, members) {
+        console.log('Updating page with:', community, members);
+        
+        // Update header
+        document.getElementById('community-category-title').textContent = community.name;
+        document.getElementById('community-category-desc').textContent = community.description || 'Temukan orang-orang dengan minat yang sama dan bangun hubungan yang bermakna.';
+        
+        // Update actions
+        const actionsContainer = document.getElementById('community-actions');
+        actionsContainer.innerHTML = '';
+        
+        // Add member count
+        const memberCount = document.createElement('div');
+        memberCount.className = 'member-count';
+        memberCount.style.cssText = 'color: #06206C; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 16px;';
+        memberCount.innerHTML = `<i class="bi bi-people-fill"></i> ${community.member_count || 0} Anggota`;
+        actionsContainer.appendChild(memberCount);
+        
+        // Add buttons
+        const joinButton = document.createElement('button');
+        joinButton.type = 'button';
+        joinButton.className = community.is_member ? 'btn-joined' : 'btn-join';
+        joinButton.innerHTML = community.is_member ? 
+            '<i class="bi bi-check-circle"></i> Sudah Bergabung' : 
+            '<i class="bi bi-plus-circle"></i> Bergabung';
+        
+        if (!community.is_member) {
+            joinButton.onclick = function() {
+                joinCommunity(community.id);
             };
-            
-            // Update judul dan deskripsi
-            document.getElementById('community-category-title').textContent = data.title;
-            document.getElementById('community-category-desc').textContent = data.description;
-            
-            // Update daftar profil
-            const profilesContainer = document.getElementById('community-profiles-container');
-            profilesContainer.innerHTML = '';
-            
-            data.profiles.forEach(profile => {
+        }
+        actionsContainer.appendChild(joinButton);
+        
+        const chatButton = document.createElement('button');
+        chatButton.type = 'button';
+        chatButton.className = 'btn-chat';
+        chatButton.innerHTML = '<i class="bi bi-chat-dots"></i> Chat Komunitas';
+        chatButton.onclick = function() {
+            window.location.href = `community_chat.php?community_id=${community.id}`;
+        };
+        actionsContainer.appendChild(chatButton);
+        
+        // Update members list
+        const profilesContainer = document.getElementById('community-profiles-container');
+        profilesContainer.innerHTML = '';
+        
+        if (!members || members.length === 0) {
+            profilesContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Belum ada anggota di komunitas ini.</p>';
+        } else {
+            members.forEach(member => {
                 const profileCard = document.createElement('div');
                 profileCard.className = 'profile-card';
+                
+                const profilePhoto = member.profile_photo ? 
+                    `../auth/${member.profile_photo}` : 
+                    '../assets/img/user.jpg';
+                
+                const roleIcon = member.role === 'owner' ? '👑' : 
+                               member.role === 'admin' ? '⭐' : '';
+                
+                const roleText = member.role === 'owner' ? 'Pendiri' : 
+                               member.role === 'admin' ? 'Admin' : 'Anggota';
+                
+                const joinDate = new Date(member.joined_at).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
                 profileCard.innerHTML = `
-                    <div class="profile-avatar">👤</div>
-                    <div class="profile-info">
-                        <div class="profile-name">${profile.name}</div>
-                        <div class="profile-details">${profile.age}, ${profile.job}</div>
-                        <div class="profile-hobby">${profile.hobby}</div>
+                    <div class="profile-avatar">
+                        <img src="../auth/${profilePhoto}" alt="${member.name}" onerror="this.src='../assets/img/user.jpg'">
                     </div>
-                    <button class="connect-btn">Connect</button>
+                    <div class="profile-info">
+                        <div class="profile-name">${member.name} ${roleIcon}</div>
+                        <div class="profile-details">${roleText} • Bergabung ${joinDate}</div>
+                        <div class="profile-hobby">${member.hobby || 'Tidak ada hobi'}</div>
+                    </div>
                 `;
                 profilesContainer.appendChild(profileCard);
             });
         }
+    }
 
-        // Fungsi untuk kembali ke halaman utama
-        function showMainPage() {
-            document.getElementById('community-page').classList.add('hidden');
-            document.getElementById('main-page').classList.remove('hidden');
-            
-            // Remove active state dari semua kategori
-            const categoryItems = document.querySelectorAll('.category-item');
-            categoryItems.forEach(item => item.classList.remove('active'));
+    // Function to join community
+    function joinCommunity(communityId) {
+        console.log('Joining community:', communityId);
+        
+        // Show confirmation
+        if (!confirm('Apakah Anda yakin ingin bergabung dengan komunitas ini?')) {
+            return;
         }
+        
+        // Submit the form
+        document.getElementById('joinCommunityId').value = communityId;
+        document.getElementById('joinCommunityForm').submit();
+    }
 
-        // Menambahkan event listener ke semua kategori
-        document.querySelectorAll('.category-item').forEach(item => {
+    // Add event listeners to community items
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoryItems = document.querySelectorAll('.category-item');
+        console.log('Found category items:', categoryItems.length);
+        
+        categoryItems.forEach(item => {
             item.addEventListener('click', function() {
-                const category = this.getAttribute('data-category');
-                showCommunityPage(category);
+                const communityId = this.getAttribute('data-community-id');
+                console.log('Category clicked:', communityId);
+                showCommunityPage(communityId);
             });
         });
+    });
 
-        // Event listener untuk tombol connect
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('connect-btn')) {
-                const btn = e.target;
-                if (btn.textContent === 'Connect') {
-                    btn.textContent = 'Connected';
-                    btn.style.background = '#27ae60';
-                } else {
-                    btn.textContent = 'Connect';
-                    btn.style.background = '#06206C';
-                }
-            }
-        });
-    </script>
+    // Function to show main page
+    function showMainPage() {
+        document.getElementById('community-page').classList.add('hidden');
+        document.getElementById('main-page').classList.remove('hidden');
+        
+        const categoryItems = document.querySelectorAll('.category-item');
+        categoryItems.forEach(item => item.classList.remove('active'));
+    }
+</script>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
