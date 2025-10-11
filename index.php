@@ -25,6 +25,22 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
     $user    = mysqli_fetch_assoc($q);
 }
 
+if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+$user_session = $_SESSION['user'];
+$user_id = $user_session['id'];
+}
+
+
+// Ambil 6 user yang role-nya Friend
+$query = "SELECT u.id, u.name, u.profile_photo, fp.hourly_rate 
+          FROM users u
+          LEFT JOIN friend_profiles fp ON u.id = fp.user_id
+          WHERE u.role = 'Friend'
+          LIMIT 6";
+
+$result = mysqli_query($conn, $query);
+
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -417,58 +433,67 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
-        <div class="container">
-            <a class="navbar-brand" href="">
-                <img src="assets/img/logo butuh teman.png" alt="" width="50">
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link actived" aria-current="page" href="#home">BERANDA</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#tentang">TENTANG</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#cari-teman">CARI TEMAN</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="#komunitas">KOMUNITAS</a>
-                    </li>
-                    
-                    <?php if (isset($_SESSION['user'])): ?>
-                    <!-- Jika user login -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="<?php echo ! empty($user['profile_photo']) ? 'auth/' . $user['profile_photo'] : 'assets/img/default-user.png' ?>"
-                            alt="profile"
-                            class="rounded-circle me-2"
-                            width="35" height="35"
-                            style="object-fit: cover;">
-                            <?php echo htmlspecialchars($_SESSION['user']['name']) ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="auth/profil_user.php">Profil Saya</a></li>
-                            <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                    <?php else: ?>
-                    <!-- Jika belum login -->
-                    <li class="nav-item">
-                        <a href="auth/login.php" class="btn btn-login ms-3">Login</a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                
-            </div>
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="../index.php">
+            <img src="assets/img/logo butuh teman.png" alt="" width="50">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link actived" aria-current="page" href="index.php">BERANDA</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="index.php#tentang">TENTANG</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="index.php#cari-teman">CARI TEMAN</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="index.php#komunitas">KOMUNITAS</a>
+                </li>
+
+                <?php if (isset($_SESSION['user'])): ?>
+                <!-- Jika user login -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="<?php echo ! empty($user_session['profile_photo']) ? 'auth/' . $user_session['profile_photo'] : 'assets/img/default-user.png' ?>"
+                        alt="profile"
+                        class="rounded-circle me-2"
+                        width="35" height="35"
+                        style="object-fit: cover;">
+                        <?php echo htmlspecialchars($user_session['name']) ?>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <?php
+                        // Determine profile link based on user role
+                        $profile_link = 'auth/profil_user.php'; // default for client
+                        if ($user_session['role'] === 'Friend') {
+                            $profile_link = 'auth/profil_teman.php';
+                        } elseif ($user_session['role'] === 'Admin') {
+                            $profile_link = 'admin/index.php'; // or whatever admin profile page
+                        }
+                        ?>
+                        <li><a class="dropdown-item" href="<?php echo $profile_link; ?>">Profil Saya</a></li>
+                        <!-- <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li> -->
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
+                    </ul>
+                </li>
+                <?php else: ?>
+                <!-- Jika belum login -->
+                <li class="nav-item">
+                    <a href="auth/login.php" class="btn btn-login ms-3">Login</a>
+                </li>
+                <?php endif; ?>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
     
     <div class="beranda-section py-5" id="home">
         <div class="container">
@@ -552,115 +577,55 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
         
     </div>
     
-    <div class="cari-teman-section py-5" id="cari-teman">
-        <div class="container">
-            <div class="cari-teman-title text-center">
-                <h1 class="mb-0">CARI TEMAN</h1>
-            </div>
-            <div class="cari-teman-desc text-center mt-3">
-                Temukan teman yang kalian cari cari selama ini!
-            </div>
-            
-            <div class="row">
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-4 mt-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row d-flex align-items-center">
-                                <div class="col-6">
-                                    <img src="assets/img/est1.jpeg" alt="" style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" class="w-100">
-                                </div>
-                                <div class="col-6 text-center">
-                                    <h5>Saint Sky</h5>
-                                    <a href="" class="btn btn-primary">BOOK</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="text-end mt-4">
-                <a href="cari-teman/index.html" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
-            </div>
+
+<div class="cari-teman-section py-5" id="cari-teman">
+    <div class="container">
+        <div class="cari-teman-title text-center">
+            <h1 class="mb-0">CARI TEMAN</h1>
         </div>
-        
+        <div class="cari-teman-desc text-center mt-3">
+            Temukan teman yang kalian cari selama ini!
+        </div>
+
+        <div class="row">
+            <?php if (mysqli_num_rows($result) > 0): ?>
+                <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                    <div class="col-4 mt-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row d-flex align-items-center">
+                                    <div class="col-6">
+                                        <img src="<?= !empty($row['profile_photo']) ? 'auth/' . $row['profile_photo'] : 'assets/img/user.jpg' ?>" 
+                                             alt="<?= htmlspecialchars($row['name']) ?>" 
+                                             style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" 
+                                             class="w-100 rounded">
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <h5><?= htmlspecialchars($row['name']) ?></h5>
+                                        <?php if (!empty($row['hourly_rate'])): ?>
+                                            <p class="text-muted mb-2">Rp<?= number_format($row['hourly_rate'], 0, ',', '.') ?>/jam</p>
+                                        <?php endif; ?>
+                                        <a href="auth/profil_teman.php?id=<?= $row['id'] ?>" class="btn btn-primary">BOOK</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="col-12 text-center mt-4">
+                    <div class="alert alert-info">Belum ada teman yang tersedia.</div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="text-end mt-4">
+            <a href="cari-teman/index.php" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
+        </div>
     </div>
-    
+</div>
+```
+
     <div class="komunitas-section" id="komunitas">
         <div class="container">
             <h1 class="komunitas-title text-center">KOMUNITAS</h1>
@@ -751,7 +716,7 @@ if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
 </div>
 
 <div class="text-end mt-4">
-    <a href="komunitas/index.html" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
+    <a href="komunitas/index.php" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
 </div>
 </div>
 </div>

@@ -85,6 +85,25 @@
     // ====== ambil data user ======
     $q    = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
     $user = mysqli_fetch_assoc($q);
+
+
+
+
+    $user_session = $_SESSION['user'];
+$user_id = $user_session['id'];
+
+$current_user_query = "SELECT * FROM users WHERE id = ?";
+if ($stmt = mysqli_prepare($conn, $current_user_query)) {
+    mysqli_stmt_bind_param($stmt, "i", $user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $current_user = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+    
+    // Update session dengan data terbaru dari database
+    $_SESSION['user'] = array_merge($_SESSION['user'], $current_user);
+    $user_session = $_SESSION['user'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -221,58 +240,69 @@
 </head>
 <body class="bg-light">
 
-    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
-        <div class="container">
-            <a class="navbar-brand" href="">
-                <img src="assets/img/logo butuh teman.png" alt="" width="50">
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link actived" aria-current="page" href="../index.php">BERANDA</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="../index.php#tentang">TENTANG</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="../index.php#cari-teman">CARI TEMAN</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" aria-current="page" href="../index.php#komunitas">KOMUNITAS</a>
-                    </li>
+   <!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="../index.php">
+            <img src="assets/img/logo butuh teman.png" alt="" width="50">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../index.php">BERANDA</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../index.php#tentang">TENTANG</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../index.php#cari-teman">CARI TEMAN</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" aria-current="page" href="../index.php#komunitas">KOMUNITAS</a>
+                </li>
 
-                    <?php if (isset($_SESSION['user'])): ?>
-                    <!-- Jika user login -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="<?php echo ! empty($user['profile_photo']) ? $user['profile_photo'] : 'assets/img/default-user.png' ?>"
-                            alt="profile"
-                            class="rounded-circle me-2"
-                            width="35" height="35"
-                            style="object-fit: cover;">
-                            <?php echo htmlspecialchars($_SESSION['user']['name']) ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="profil_user.php">Profil Saya</a></li>
-                            <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="auth/logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                    <?php else: ?>
-                    <!-- Jika belum login -->
-                    <li class="nav-item">
-                        <a href="login.php" class="btn btn-login ms-3">Login</a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-
-            </div>
+                <?php if (isset($_SESSION['user'])): ?>
+                <!-- Jika user login -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="<?php echo ! empty($user_session['profile_photo']) ? $user_session['profile_photo'] : 'assets/img/default-user.png' ?>"
+                        alt="profile"
+                        class="rounded-circle me-2"
+                        width="35" height="35"
+                        style="object-fit: cover;">
+                        <?php echo htmlspecialchars($user_session['name']) ?>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <?php
+                        // Determine profile link based on user role
+                        $profile_link = 'profil_user.php'; // default for client
+                        if ($user_session['role'] === 'Friend') {
+                            $profile_link = 'profil_teman.php';
+                        } elseif ($user_session['role'] === 'Admin') {
+                            $profile_link = 'admin/index.php'; // or whatever admin profile page
+                        }
+                        ?>
+                        <li><a class="dropdown-item" href="<?php echo $profile_link; ?>">Profil Saya</a></li>
+                        <!-- <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li> -->
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="logout.php">Logout</a></li>
+                    </ul>
+                </li>
+                <?php else: ?>
+                <!-- Jika belum login -->
+                <li class="nav-item">
+                    <a href="login.php" class="btn btn-login ms-3">Login</a>
+                </li>
+                <?php endif; ?>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
+
+
 
     <!-- PROFILE CARD -->
     <div class="container">
@@ -300,7 +330,7 @@
         </div>
 
         <div class="my-3 text-end">
-            Mau jadi Teman? <a href="" class="btn btn-warning">Join Jadi Teman</a>
+            Mau jadi Teman? <a href="join_friend.php" class="btn btn-warning">Join Jadi Teman</a>
         </div>
 
         <!-- TAB NAVIGATION -->
@@ -366,11 +396,104 @@
             </div>
 
             <!-- RIWAYAT BOOKING -->
-            <div class="tab-pane fade" id="history">
-                <div class="box">
-                    <p class="text-muted">📅 Riwayat booking akan tampil di sini.</p>
-                </div>
+<div class="tab-pane fade" id="history">
+    <div class="box">
+        <h6 class="fw-bold text-primary mb-3">Riwayat Booking Saya</h6>
+        <?php
+        // Get client's booking history
+        $client_bookings_query = "SELECT b.*, u.name as friend_name, u.profile_photo as friend_photo 
+                                 FROM bookings b 
+                                 JOIN users u ON b.friend_id = u.id 
+                                 WHERE b.client_id = ? 
+                                 ORDER BY b.created_at DESC";
+        
+        if ($stmt = mysqli_prepare($conn, $client_bookings_query)) {
+            mysqli_stmt_bind_param($stmt, "i", $user_id);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            $client_bookings = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            mysqli_stmt_close($stmt);
+        }
+        
+        if (!empty($client_bookings)): ?>
+            <div class="list-group">
+                <?php foreach ($client_bookings as $booking): 
+                    $time_remaining = strtotime($booking['start_datetime']) - time();
+                    $hours_remaining = floor($time_remaining / 3600);
+                ?>
+                    <div class="list-group-item booking-item mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex align-items-center flex-grow-1">
+                                <img src="<?php echo !empty($booking['friend_photo']) ? htmlspecialchars($booking['friend_photo']) : 'assets/img/default-user.png' ?>" 
+                                     class="client-avatar me-3" alt="Friend">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1"><?php echo htmlspecialchars($booking['friend_name']); ?></h6>
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-calendar"></i> 
+                                        <?php echo date('d M Y', strtotime($booking['start_datetime'])); ?>
+                                    </p>
+                                    <p class="mb-1 small">
+                                        <i class="bi bi-clock"></i> 
+                                        <?php echo date('H:i', strtotime($booking['start_datetime'])); ?> - 
+                                        <?php echo date('H:i', strtotime($booking['end_datetime'])); ?>
+                                        (<?php echo round((strtotime($booking['end_datetime']) - strtotime($booking['start_datetime'])) / 3600, 1); ?> jam)
+                                    </p>
+                                    <p class="mb-0 small">
+                                        <i class="bi bi-currency-dollar"></i> 
+                                        Rp <?php echo number_format($booking['total_price'], 0, ',', '.'); ?>
+                                    </p>
+                                    
+                                    <?php if ($booking['status'] == 'pending' && $time_remaining > 0): ?>
+                                        <p class="mb-0 small time-remaining <?php echo $hours_remaining < 24 ? 'urgent' : ''; ?>">
+                                            <i class="bi bi-alarm"></i>
+                                            Menunggu konfirmasi: <?php echo $hours_remaining; ?> jam lagi
+                                            <?php if ($hours_remaining < 24): ?>
+                                                <br><small class="text-danger">Teman harus segera konfirmasi!</small>
+                                            <?php endif; ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="booking-status-<?php echo $booking['status']; ?>">
+                                    <?php 
+                                    $status_text = [
+                                        'pending' => 'Menunggu Konfirmasi',
+                                        'accepted' => 'Diterima',
+                                        'rejected' => 'Ditolak',
+                                        'completed' => 'Selesai'
+                                    ];
+                                    echo $status_text[$booking['status']] ?? $booking['status'];
+                                    ?>
+                                </span>
+                                <br>
+                                <small class="text-muted">
+                                    <?php echo date('d M Y H:i', strtotime($booking['created_at'])); ?>
+                                </small>
+                                
+                                <?php if ($booking['status'] == 'rejected' && $time_remaining > 0): ?>
+                                    <div class="mt-2">
+                                        <a href="profil_teman.php?id=<?php echo $booking['friend_id']; ?>" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="bi bi-calendar-plus"></i> Booking Lagi
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
+        <?php else: ?>
+            <p class="text-muted">Belum ada riwayat booking.</p>
+            <div class="text-center">
+                <a href="../index.php#cari-teman" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Cari Teman untuk Booking
+                </a>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
             <!-- ULASAN -->
             <div class="tab-pane fade" id="reviews">
