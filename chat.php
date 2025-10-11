@@ -326,18 +326,7 @@ if ($stmt = mysqli_prepare($conn, $mark_read_query)) {
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="nav-links">
-            <a href="index.php">BERANDA</a>
-            <a href="index.php#tentang">TENTANG</a>
-            <a href="index.php#cari-teman">CARI TEMAN</a>
-            <a href="index.php#komunitas">KOMUNITAS</a>
-        </div>
-        <div class="profile-icon">
-            <a href="auth/profil_user.php" style="color: white; text-decoration: none;">👤</a>
-        </div>
-    </div>
+    
 
     <!-- Chat Header -->
     <div class="chat-header">

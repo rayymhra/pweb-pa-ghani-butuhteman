@@ -112,7 +112,7 @@ if ($stmt = mysqli_prepare($conn, $conversations_query)) {
                 ?>
                     <a href="chat.php?user_id=<?php echo $other_user['id']; ?>" class="conversation-item">
                         <div class="d-flex align-items-center">
-                            <img src="<?php echo !empty($other_user['photo']) ? htmlspecialchars($other_user['photo']) : 'assets/img/default-user.png'; ?>" 
+                            <img src="<?php echo !empty($other_user['photo']) ? 'auth/' . htmlspecialchars($other_user['photo']) : 'assets/img/default-user.png'; ?>" 
                                  class="conversation-avatar me-3" alt="<?php echo htmlspecialchars($other_user['name']); ?>">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1"><?php echo htmlspecialchars($other_user['name']); ?></h6>
