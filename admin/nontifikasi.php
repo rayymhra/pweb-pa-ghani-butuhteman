@@ -1,3 +1,20 @@
+<?php
+include 'config.php'; // Pastikan file koneksi sudah benar
+
+// Ambil semua notifikasi terbaru
+$notif = $conn->query("SELECT * FROM notifications ORDER BY created_at DESC");
+
+// Hitung total notifikasi belum dibaca
+$total_notif = $conn->query("SELECT COUNT(*) AS jml FROM notifications WHERE is_read = 0")->fetch_assoc()['jml'];
+
+// Kalau admin klik "tandai dibaca" (opsional)
+if (isset($_GET['read_all'])) {
+  $conn->query("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
+  header("Location: nontifikasi.php");
+  exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -79,10 +96,10 @@
       font-size: 0.85rem;
       color: gray;
     }
-    .topbar a{
-        color: black;
+    .topbar a {
+      color: black;
     }
-     .topbar h4 {
+    .topbar h4 {
       margin: 0;
       font-weight: 600;
     }
@@ -92,120 +109,60 @@
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <img src="Greatest_Logo.png" alt="Logo">
+    <img src="assets/img/Greatest_Logo.png" alt="Logo">
     <a href="dashboard.php"><i class="bi bi-house-door-fill me-2"></i>Dashboard</a>
-    <a href="user.php"><i class="bi bi-people-fill me-2"></i>User</a>
+    <a href="users.php"><i class="bi bi-people-fill me-2"></i>User</a>
     <a href="komunitas.php"><i class="bi bi-people-fill me-2"></i>Komunitas</a>
   </div>
 
   <!-- Topbar -->
   <div class="topbar">
-    <h4>Notifikasi</h4>
+    <h4>Notifikasi Admin</h4>
     <div>
-      <a href="notifikasi.php"><i class="bi bi-bell-fill me-3"></i></a>
-      <i class="bi bi-person-circle"></i>
+      <a href="nontifikasi.php" class="position-relative">
+        <i class="bi bi-bell-fill me-3"></i>
+        <?php if ($total_notif > 0): ?>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          <?= $total_notif ?>
+        </span>
+        <?php endif; ?>
+      </a>
+            <a href="../auth/logout.php" class="btn btn-danger">Logout</a>
+
     </div>
   </div>
 
   <!-- Content -->
   <div class="content">
     <div class="card p-3">
-      <h5>Daftar Notifikasi</h5>
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Daftar Notifikasi</h5>
+        <a href="?read_all=1" class="btn btn-sm btn-outline-primary">Tandai Semua Dibaca</a>
+      </div>
+
       <div class="mt-3">
-
-        <!-- Notifikasi 1 -->
-        <div class="notif-item">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <i class="bi bi-chat-dots-fill text-primary me-2"></i>
-              <strong>Budi</strong> meminta admin membuat komunitas <strong>Komunitas Hiking</strong>.
-              <div class="notif-time">1 jam lalu</div>
+        <?php if ($notif->num_rows > 0): ?>
+          <?php while($n = $notif->fetch_assoc()): ?>
+            <div class="notif-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <i class="bi bi-info-circle text-primary me-2"></i>
+                  <?= htmlspecialchars($n['message']) ?>
+                  <div class="notif-time">
+                    <?= date("d M Y H:i", strtotime($n['created_at'])) ?>
+                  </div>
+                </div>
+                <?php if ($n['is_read'] == 0): ?>
+                  <span class="badge bg-warning text-dark">Baru</span>
+                <?php else: ?>
+                  <span class="badge bg-success">Dibaca</span>
+                <?php endif; ?>
+              </div>
             </div>
-            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#lihatModal">Lihat</button>
-          </div>
-        </div>
-
-        <!-- Notifikasi 2 -->
-        <div class="notif-item">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <i class="bi bi-person-check-fill text-success me-2"></i>
-              <strong>Sinta</strong> baru saja login ke sistem.
-              <div class="notif-time">2 jam lalu</div>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#detailModal">Detail</button>
-          </div>
-        </div>
-
-        <!-- Notifikasi 3 -->
-        <div class="notif-item">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <i class="bi bi-people-fill text-warning me-2"></i>
-              <strong>Andi</strong> bergabung dengan komunitas <strong>Travel Lovers</strong>.
-              <div class="notif-time">Kemarin</div>
-            </div>
-            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#okModal">OK</button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Lihat -->
-  <div class="modal fade" id="lihatModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content rounded-3">
-        <div class="modal-header">
-          <h5 class="modal-title">Detail Permintaan Komunitas</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p><strong>User:</strong> Budi</p>
-          <p><strong>Komunitas:</strong> Komunitas Hiking</p>
-          <p><strong>Deskripsi:</strong> Komunitas untuk pecinta hiking dan pendaki gunung.</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-success">Setujui</button>
-          <button class="btn btn-danger">Tolak</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Detail -->
-  <div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content rounded-3">
-        <div class="modal-header">
-          <h5 class="modal-title">Detail Aktivitas User</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p><strong>User:</strong> Sinta</p>
-          <p><strong>Aktivitas:</strong> Login ke sistem</p>
-          <p><strong>Waktu:</strong> 2 jam lalu</p>
-          <p><strong>Perangkat:</strong> Chrome - Windows 10</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal OK -->
-  <div class="modal fade" id="okModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content rounded-3">
-        <div class="modal-header">
-          <h5 class="modal-title">Konfirmasi</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <p>Apakah Anda sudah membaca notifikasi ini?</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary" data-bs-dismiss="modal">OK, Tandai Dibaca</button>
-        </div>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p class="text-muted text-center mt-3">Belum ada notifikasi.</p>
+        <?php endif; ?>
       </div>
     </div>
   </div>

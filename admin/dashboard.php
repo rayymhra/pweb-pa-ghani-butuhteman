@@ -1,3 +1,67 @@
+<?php
+// Koneksi ke database
+$conn = new mysqli("localhost", "root", "", "butuh_teman");
+if ($conn->connect_error) {
+    die("Koneksi gagal: " . $conn->connect_error);
+}
+
+/* ====== TOTAL DATA ====== */
+// Total pengguna dari tabel users
+$totalUser = $conn->query("SELECT COUNT(*) AS total FROM users")->fetch_assoc()['total'];
+
+// Total booking dari tabel bookings
+$totalBooking = $conn->query("SELECT COUNT(*) AS total FROM bookings")->fetch_assoc()['total'];
+
+// Total pendapatan dari bookings.total_price
+$totalPendapatan = $conn->query("SELECT SUM(total_price) AS total FROM bookings")->fetch_assoc()['total'] ?? 0;
+
+/* ====== BOOKING TERBARU ====== */
+$bookingTerbaru = $conn->query("
+    SELECT 
+        u.name AS nama_client,
+        b.start_datetime AS mulai,
+        b.end_datetime AS selesai,
+        b.status
+    FROM bookings b
+    JOIN users u ON b.client_id = u.id
+    ORDER BY b.created_at DESC
+    LIMIT 5
+");
+
+/* ====== DATA UNTUK CHART ====== */
+// Booking dan pendapatan per bulan
+$chartData = $conn->query("
+    SELECT 
+        MONTH(created_at) AS bulan, 
+        COUNT(*) AS total_booking, 
+        SUM(total_price) AS total_pendapatan
+    FROM bookings
+    GROUP BY MONTH(created_at)
+");
+
+$labels = [];
+$bookingData = [];
+$pendapatanData = [];
+while ($row = $chartData->fetch_assoc()) {
+    $labels[] = "Bulan " . $row['bulan'];
+    $bookingData[] = $row['total_booking'];
+    $pendapatanData[] = $row['total_pendapatan'];
+}
+
+// Kategori populer (berdasarkan role Friend di tabel users)
+$kategoriData = $conn->query("
+    SELECT role, COUNT(*) AS jumlah
+    FROM users
+    WHERE role IN ('Client','Friend','Admin')
+    GROUP BY role
+");
+$kategoriLabels = [];
+$kategoriJumlah = [];
+while ($row = $kategoriData->fetch_assoc()) {
+    $kategoriLabels[] = $row['role'];
+    $kategoriJumlah[] = $row['jumlah'];
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,258 +71,140 @@
 
   <!-- Bootstrap 5 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #fdfcf7;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background-color: #fdfcf7; }
+    .sidebar { width: 240px; height: 100vh; background-color: #FECE6A; color: #06206C; position: fixed; top: 0; left: 0; padding: 20px 15px; text-align: center; }
+    .sidebar img { width: 80px; margin-bottom: 30px; }
+    .sidebar a { display: block; padding: 10px 15px; margin: 8px 0; text-decoration: none; color: #06206C; border-radius: 8px; transition: 0.3s; font-weight: 500; text-align: left; }
+    .sidebar a:hover, .sidebar a.active { background-color: #06206C; color: #FECE6A; }
+    .topbar { margin-left: 240px; height: 60px; background-color: #FECE6A; color: #06206C; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #06206C; }
+    .content { margin-left: 240px; padding: 20px; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .table thead { background-color: #FECE6A; color: #06206C; }
+    .table tbody tr:hover { background-color: rgba(254,206,106,0.2); }
+    .topbar a { color: #06206C;}
+    .topbar h4 { margin: 0; font-weight: 600; }
 
-    /* Sidebar */
-    .sidebar {
-      width: 240px;
-      height: 100vh;
-      background-color: #FECE6A;
-      color: #06206C;
-      position: fixed;
-      top: 0;
-      left: 0;
-      padding: 20px 15px;
-      text-align: center;
-    }
-    .sidebar img {
-      width: 80px;
-      margin-bottom: 30px;
-    }
-    .sidebar a {
-      display: block;
-      padding: 10px 15px;
-      margin: 8px 0;
-      text-decoration: none;
-      color: #06206C;
-      border-radius: 8px;
-      transition: 0.3s;
-      font-weight: 500;
-      text-align: left;
-    }
-    .sidebar a:hover,
-    .sidebar a.active {
-      background-color: #06206C;
-      color: #FECE6A;
-    }
-
-    /* Topbar */
-    .topbar {
-      margin-left: 240px;
-      height: 60px;
-      background-color: #FECE6A;
-      color: #06206C;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      border-bottom: 2px solid #06206C;
-    }
-    .topbar h4 {
-      margin: 0;
-      font-weight: 600;
-    }
-
-    /* Content */
-    .content {
-      margin-left: 240px;
-      padding: 20px;
-    }
-
-    .card {
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    .card h5 {
-      color: #06206C;
-    }
-
-    /* Table */
-    .table thead {
-      background-color: #FECE6A;
-      color: #06206C;
-    }
-    .table tbody tr:hover {
-      background-color: rgba(254,206,106,0.2);
-    }
-
-    /* Buttons */
-    .btn-custom {
-      background-color: #FECE6A;
-      color: #06206C;
-      border-radius: 8px;
-      transition: 0.3s;
-      font-weight: 600;
-    }
-    .btn-custom:hover {
-      background-color: #06206C;
-      color: #FECE6A;
-    }
-    .topbar a{
-      color: black;
-    }
   </style>
 </head>
 <body>
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <img src="Greatest_Logo.png" alt="Logo">
+    <img src="assets/img/Greatest_Logo.png" alt="Logo">
     <a href="dashboard.php" class="active"><i class="bi bi-house-door-fill me-2"></i>Dashboard</a>
-    <a href="user.php"><i class="bi bi-people-fill me-2"></i>User</a>
-    <a href="komunitas.php"><i class="bi bi-people-fill me-2"></i>Komunitas</a>
+    <a href="users.php"><i class="bi bi-people-fill me-2"></i>User</a>
+    <a href="komunitas.php"><i class="bi bi-chat-left-dots-fill me-2"></i>Komunitas</a>
   </div>
 
-  <!-- Topbar -->
+  <!-- Topbar --> 
   <div class="topbar">
     <h4>Dashboard</h4>
     <div>
       <a href="nontifikasi.php"><i class="bi bi-bell-fill me-3"></i></a>
-      <i class="bi bi-person-circle"></i>
+      <a href="../auth/logout.php" class="btn btn-danger">Logout</a>
+
     </div>
   </div>
 
   <!-- Content -->
   <div class="content">
     <div class="row g-4">
-      <!-- Statistik -->
       <div class="col-md-4">
         <div class="card p-3 text-center">
           <h5>Total Pengguna</h5>
-          <h2 style="color:#06206C;">1,245</h2>
+          <h2><?= number_format($totalUser) ?></h2>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card p-3 text-center">
           <h5>Total Booking</h5>
-          <h2 style="color:#06206C;">867</h2>
+          <h2><?= number_format($totalBooking) ?></h2>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card p-3 text-center">
           <h5>Total Pendapatan</h5>
-          <h2 style="color:#06206C;">Rp 12,500K</h2>
+          <h2>Rp <?= number_format($totalPendapatan, 0, ',', '.') ?></h2>
         </div>
       </div>
     </div>
 
-    <!-- Charts -->
-<div class="row g-4 mt-2 align-items-stretch">
-  <div class="col-md-8">
-    <div class="card p-3 h-100">
-      <h5>Tren Booking & Pendapatan</h5>
-      <canvas id="bookingChart" class="w-100 h-100"></canvas>
+    <div class="row g-4 mt-3">
+      <div class="col-md-8">
+        <div class="card p-3">
+          <h5>Tren Booking & Pendapatan</h5>
+          <canvas id="bookingChart"></canvas>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-3">
+          <h5>Peran Populer</h5>
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="col-md-4">
-    <div class="card p-3 h-100">
-      <h5>Kategori Populer</h5>
-      <canvas id="categoryChart" class="w-100 h-100"></canvas>
-    </div>
-  </div>
-</div>
 
-
-    <!-- Table -->
+    <!-- Table Booking Terbaru -->
     <div class="card mt-4 p-3">
       <h5>Booking Terbaru</h5>
       <table class="table table-hover mt-3">
         <thead>
           <tr>
-            <th>Nama</th>
-            <th>Kategori</th>
-            <th>Tanggal</th>
+            <th>Nama Client</th>
+            <th>Mulai</th>
+            <th>Selesai</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
+          <?php while($row = $bookingTerbaru->fetch_assoc()): ?>
           <tr>
-            <td>Budi</td>
-            <td>Gaming</td>
-            <td>20 Sep 2025</td>
-            <td><span class="badge bg-success">Selesai</span></td>
+            <td><?= $row['nama_client'] ?></td>
+            <td><?= date("d M Y H:i", strtotime($row['mulai'])) ?></td>
+            <td><?= date("d M Y H:i", strtotime($row['selesai'])) ?></td>
+            <td>
+              <?php
+              $status = $row['status'];
+              if ($status == 'completed') echo '<span class="badge bg-success">Selesai</span>';
+              elseif ($status == 'pending') echo '<span class="badge bg-warning text-dark">Menunggu</span>';
+              elseif ($status == 'accepted') echo '<span class="badge bg-info text-dark">Diterima</span>';
+              else echo '<span class="badge bg-danger">Ditolak</span>';
+              ?>
+            </td>
           </tr>
-          <tr>
-            <td>Sinta</td>
-            <td>Travel</td>
-            <td>22 Sep 2025</td>
-            <td><span class="badge bg-warning text-dark">Proses</span></td>
-          </tr>
-          <tr>
-            <td>Andi</td>
-            <td>Kuliner</td>
-            <td>23 Sep 2025</td>
-            <td><span class="badge bg-danger">Batal</span></td>
-          </tr>
+          <?php endwhile; ?>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Bootstrap JS -->
+  <!-- JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Chart.js Script -->
   <script>
     // Line Chart
     new Chart(document.getElementById("bookingChart"), {
       type: "line",
       data: {
-        labels: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul"],
+        labels: <?= json_encode($labels) ?>,
         datasets: [
-          {
-            label: "Booking",
-            data: [30, 45, 60, 40, 75, 90, 100],
-            borderColor: "#06206C",
-            backgroundColor: "rgba(6,32,108,0.15)",
-            fill: true,
-            tension: 0.4
-          },
-          {
-            label: "Pendapatan",
-            data: [10, 20, 40, 30, 60, 80, 95],
-            borderColor: "#FECE6A",
-            backgroundColor: "rgba(254,206,106,0.4)",
-            fill: true,
-            tension: 0.4
-          }
+          { label: "Booking", data: <?= json_encode($bookingData) ?>, borderColor: "#06206C", fill: false, tension: 0.3 },
+          { label: "Pendapatan", data: <?= json_encode($pendapatanData) ?>, borderColor: "#FECE6A", fill: true, tension: 0.3 }
         ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "top" }
-        }
       }
     });
 
-    // Pie Chart
+    // Doughnut Chart
     new Chart(document.getElementById("categoryChart"), {
       type: "doughnut",
       data: {
-        labels: ["Gaming", "Travel", "Kuliner", "Olahraga"],
-        datasets: [{
-          data: [40, 25, 20, 15],
-          backgroundColor: ["#FECE6A", "#06206C", "#FECE6A80", "#06206C80"],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: "bottom" } }
+        labels: <?= json_encode($kategoriLabels) ?>,
+        datasets: [{ data: <?= json_encode($kategoriJumlah) ?>, backgroundColor: ["#FECE6A", "#06206C", "#FECE6A99"] }]
       }
     });
   </script>
