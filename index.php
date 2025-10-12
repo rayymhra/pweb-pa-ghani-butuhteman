@@ -1,5 +1,5 @@
 <?php
-session_start();
+    session_start();
 
     $host = "localhost";
     $user = "root";
@@ -17,30 +17,35 @@ session_start();
     //     exit;
     // }
 
-$user = null; // default null
+    $user = null; // default null
 
-if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
-    $user_id = intval($_SESSION['user']['id']);
-    $q       = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
-    $user    = mysqli_fetch_assoc($q);
-}
+    if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+        $user_id = intval($_SESSION['user']['id']);
+        $q       = mysqli_query($conn, "SELECT * FROM users WHERE id=$user_id");
+        $user    = mysqli_fetch_assoc($q);
+    }
 
-if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
-$user_session = $_SESSION['user'];
-$user_id = $user_session['id'];
-}
+    if (isset($_SESSION['user']) && isset($_SESSION['user']['id'])) {
+        $user_session = $_SESSION['user'];
+        $user_id      = $user_session['id'];
+    }
 
-
-// Ambil 6 user yang role-nya Friend
-$query = "SELECT u.id, u.name, u.profile_photo, fp.hourly_rate 
+    // Ambil 6 user yang role-nya Friend
+    $query = "SELECT u.id, u.name, u.profile_photo, fp.hourly_rate
           FROM users u
           LEFT JOIN friend_profiles fp ON u.id = fp.user_id
           WHERE u.role = 'Friend'
           LIMIT 6";
 
-$result = mysqli_query($conn, $query);
+    $result = mysqli_query($conn, $query);
 
-
+    // Ambil 4 komunitas dari database
+$komunitas_query = "SELECT * FROM communities ORDER BY created_at DESC LIMIT 4";
+$komunitas_result = mysqli_query($conn, $komunitas_query);
+$komunitas = [];
+if ($komunitas_result) {
+    $komunitas = mysqli_fetch_all($komunitas_result, MYSQLI_ASSOC);
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -51,27 +56,27 @@ $result = mysqli_query($conn, $query);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
     <link rel="stylesheet" href="assets/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <style>
-        
+
         @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100..700;1,100..700&display=swap');
-        
+
         * {
             font-family: "Josefin Sans", sans-serif;
         }
-        
-        
-        
+
+
+
         /* NAVBARRRRRR */
         .navbar {
             background-color: #FECE6A !important;
         }
-        
+
         .nav-link {
             color: #315DB4;
             font-weight: 500;
         }
-        
+
         /* Pastikan semua nav-item rata tengah */
         .navbar .nav-link,
         .navbar .btn-login {
@@ -82,7 +87,7 @@ $result = mysqli_query($conn, $query);
             padding-top: 0;
             padding-bottom: 0;
         }
-        
+
         /* Supaya foto profil benar-benar sejajar */
         .navbar .nav-link img {
             width: 35px;
@@ -90,14 +95,14 @@ $result = mysqli_query($conn, $query);
             object-fit: cover;
             border-radius: 50%;
         }
-        
+
         /* Untuk tombol login */
         .btn-login {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .btn-login {
             background-color: #06206C; /* biru navy */
             color: #FECE6A; /* kuning */
@@ -109,7 +114,7 @@ $result = mysqli_query($conn, $query);
             transition: all 0.3s ease;
             /* box-shadow: 0 3px 8px rgba(6, 32, 108, 0.3); */
         }
-        
+
         .btn-login:hover {
             background-color: #FECE6A; /* kuning */
             color: #06206C; /* biru navy */
@@ -117,20 +122,20 @@ $result = mysqli_query($conn, $query);
             box-shadow: 0 5px 12px rgba(254, 206, 106, 0.4);
             transform: translateY(-2px);
         }
-        
+
         .btn-login:active {
             transform: scale(0.95);
             background-color: #e6b95f; /* kuning gelap */
             border-color: #e6b95f;
             color: #06206C;
         }
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
         .btn-yellow {
             background-color: #FECE6A;
             color: #0F4457;
@@ -138,65 +143,65 @@ $result = mysqli_query($conn, $query);
             font-weight: 600;
             font-size: 18px;
         }
-        
+
         .btn-yellow:hover {
             background-color: #e6b95f; /* slightly darker yellow for hover */
             color: #0F4457;
         }
-        
+
         .btn-yellow:focus,
         .btn-yellow:active {
             background-color: #d9aa54 !important; /* pressed state */
             color: #0F4457 !important;
             box-shadow: 0 0 0 0.25rem rgba(254, 206, 106, 0.5);
         }
-        
-        
+
+
         .actived {
             color: #06206C;
             font-weight: 600;
         }
-        
+
         .beranda-title {
             color: #06206C;
             font-size: 60px;
             font-weight: 700;
-            
+
         }
-        
+
         .beranda-title-title {
             color: #315DB4;
             font-size: 60px;
             font-weight: 700;
         }
-        
+
         .tentang-kami-section {
             background-color: #06206C;
         }
-        
+
         .tentang-description {
             text-align: justify;
             font-size: 17px;
         }
-        
+
         .tentang-title {
             color: #FECE6A;
             width: fit-content;
             position: relative;
         }
-        
+
         .tentang-title::after {
             content: "";
             width: 100%;
             height: 7px;
-            
+
             background-color: #315DB4;
-            
+
             position: absolute;
             bottom: -2px;
             left: 0;
         }
-        
+
         .btn-warning {
             background-color: #FECE6A;
             color: #0F4457;
@@ -204,87 +209,87 @@ $result = mysqli_query($conn, $query);
             border-color: #FECE6A;
             border-width: 3px;
         }
-        
+
         .btn-warning:hover {
             background-color: #ffffff00;
             color: #0F4457;
             border-color: #FECE6A;
             border-width: 3px;
-            
+
         }
-        
+
         .btn-outline-warning {
             color: #0F4457;
             border-color: #FECE6A;
             border-width: 3px;
             font-weight: 600;
-            
+
         }
-        
+
         .btn-outline-warning:hover {
             background-color: #FECE6A;
             border-color: #FECE6A;
             color: #0F4457;
         }
-        
+
         .statistic-section {
             background-color: #FECE6A;
         }
-        
+
         .statistic-title {
             color: #0F4457;
             font-weight: 600;
         }
-        
+
         .statistic-number {
             font-weight: 700;
         }
-        
+
         /* CARI TEMAN INDEX */
         .cari-teman-section .card {
             border: #FECE6A 3px solid;
         }
-        
+
         .cari-teman-title h1{
             color: #06206C;
             font-weight: 700;
         }
-        
+
         .cari-teman-title:after {
             content: "";
-            width: 24%; 
+            width: 24%;
             height: 4px;
             background: #FECE6A;
             margin-left: auto;
             margin-right: auto;
             display: block;
         }
-        
+
         .komunitas-title {
             color: #06206C;
             font-weight: 700;
         }
-        
+
         .komunitas-title:after {
             content: "";
-            width: 24%; 
+            width: 24%;
             height: 4px;
             background: #FECE6A;
             margin-left: auto;
             margin-right: auto;
             display: block;
         }
-        
-        
-        
-        
-        
+
+
+
+
+
         .footer {
             background: #FECE6A;
             padding: 60px 40px 30px;
             color: #06206C;
         }
-        
+
         .footer-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -293,7 +298,7 @@ $result = mysqli_query($conn, $query);
             gap: 50px;
             align-items: start;
         }
-        
+
         .footer-section h2 {
             font-size: 32px;
             font-weight: bold;
@@ -301,7 +306,7 @@ $result = mysqli_query($conn, $query);
             line-height: 1.2;
             color: #06206C;
         }
-        
+
         .footer-section h3 {
             font-size: 24px;
             font-weight: 600;
@@ -311,22 +316,22 @@ $result = mysqli_query($conn, $query);
             padding-bottom: 8px;
             display: inline-block;
         }
-        
+
         .footer-section p {
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 15px;
             color: #1565C0;
         }
-        
+
         .footer-section ul {
             list-style: none;
         }
-        
+
         .footer-section ul li {
             margin-bottom: 12px;
         }
-        
+
         .footer-section ul li a {
             color: #1976D2;
             text-decoration: none;
@@ -334,12 +339,12 @@ $result = mysqli_query($conn, $query);
             font-weight: 500;
             transition: color 0.3s ease;
         }
-        
+
         .footer-section ul li a:hover {
             color: #0D47A1;
             text-decoration: underline;
         }
-        
+
         .contact-item {
             display: flex;
             align-items: center;
@@ -347,20 +352,20 @@ $result = mysqli_query($conn, $query);
             font-size: 16px;
             color: #1565C0;
         }
-        
+
         .contact-item i {
             font-size: 20px;
             margin-right: 12px;
             color: #2196F3;
             width: 25px;
         }
-        
+
         .social-links {
             display: flex;
             gap: 15px;
             margin-top: 20px;
         }
-        
+
         .social-links a {
             display: inline-flex;
             align-items: center;
@@ -374,12 +379,12 @@ $result = mysqli_query($conn, $query);
             text-decoration: none;
             transition: all 0.3s ease;
         }
-        
+
         .social-links a:hover {
             background-color: #1976D2;
             transform: translateY(-2px);
         }
-        
+
         .footer-bottom {
             text-align: center;
             margin-top: 50px;
@@ -389,47 +394,47 @@ $result = mysqli_query($conn, $query);
             color: #1976D2;
             font-weight: 500;
         }
-        
+
         @media (max-width: 1024px) {
             .footer-content {
                 grid-template-columns: 1fr 1fr;
                 gap: 40px;
             }
         }
-        
+
         @media (max-width: 768px) {
             .footer {
                 padding: 40px 20px 20px;
             }
-            
+
             .footer-content {
                 grid-template-columns: 1fr;
                 gap: 35px;
                 text-align: center;
             }
-            
+
             .footer-section h2 {
                 font-size: 28px;
             }
-            
+
             .footer-section h3 {
                 font-size: 20px;
             }
-            
+
             .contact-item {
                 justify-content: center;
             }
-            
+
             .social-links {
                 justify-content: center;
             }
         }
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
     </style>
 </head>
 <body>
@@ -461,7 +466,7 @@ $result = mysqli_query($conn, $query);
                 <!-- Jika user login -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?php echo ! empty($user_session['profile_photo']) ? 'auth/' . $user_session['profile_photo'] : 'assets/img/default-user.png' ?>"
+                        <img src="<?php echo ! empty($user_session['profile_photo']) ? 'auth/' . $user_session['profile_photo'] : 'assets/img/user.jpg' ?>"
                         alt="profile"
                         class="rounded-circle me-2"
                         width="35" height="35"
@@ -470,13 +475,13 @@ $result = mysqli_query($conn, $query);
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                         <?php
-                        // Determine profile link based on user role
-                        $profile_link = 'auth/profil_user.php'; // default for client
-                        if ($user_session['role'] === 'Friend') {
-                            $profile_link = 'auth/profil_teman.php';
-                        } elseif ($user_session['role'] === 'Admin') {
-                            $profile_link = 'admin/index.php'; // or whatever admin profile page
-                        }
+                                                                    // Determine profile link based on user role
+                            $profile_link = 'auth/profil_user.php'; // default for client
+                            if ($user_session['role'] === 'Friend') {
+                                $profile_link = 'auth/profil_teman.php';
+                            } elseif ($user_session['role'] === 'Admin') {
+                                $profile_link = 'admin/index.php'; // or whatever admin profile page
+                            }
                         ?>
                         <li><a class="dropdown-item" href="<?php echo $profile_link; ?>">Profil Saya</a></li>
                         <!-- <li><a class="dropdown-item" href="settings.php">Pengaturan</a></li> -->
@@ -494,7 +499,7 @@ $result = mysqli_query($conn, $query);
         </div>
     </div>
 </nav>
-    
+
     <div class="beranda-section py-5" id="home">
         <div class="container">
             <div class="row d-flex align-items-center">
@@ -508,12 +513,12 @@ $result = mysqli_query($conn, $query);
                     <h5 class="beranda-subtitle">
                         Butuh Teman Ngobrol? Sewa Sekarang!
                     </h5>
-                    
+
                     <div class="btn-beranda mt-5">
                         <a href="" class="btn btn-outline-warning">Lihat Teman</a>
                         <a href="auth/login.php" class="btn btn-warning">Gabung Jadi Teman</a>
                     </div>
-                    
+
                 </div>
                 <div class="col-6">
                     <img src="assets/img/undraw_living_9un5.svg" alt="" class="w-100">
@@ -521,7 +526,7 @@ $result = mysqli_query($conn, $query);
             </div>
         </div>
     </div>
-    
+
     <div class="tentang-kami-section py-5" id="tentang">
         <div class="container">
             <div class="row d-flex align-items-center">
@@ -536,7 +541,7 @@ $result = mysqli_query($conn, $query);
             </div>
         </div>
     </div>
-    
+
     <div class="statistic-section py-5" >
         <div class="container">
             <div class="row">
@@ -574,9 +579,9 @@ $result = mysqli_query($conn, $query);
                 </div>
             </div>
         </div>
-        
+
     </div>
-    
+
 
 <div class="cari-teman-section py-5" id="cari-teman">
     <div class="container">
@@ -595,17 +600,17 @@ $result = mysqli_query($conn, $query);
                             <div class="card-body">
                                 <div class="row d-flex align-items-center">
                                     <div class="col-6">
-                                        <img src="<?= !empty($row['profile_photo']) ? 'auth/' . $row['profile_photo'] : 'assets/img/user.jpg' ?>" 
-                                             alt="<?= htmlspecialchars($row['name']) ?>" 
-                                             style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;" 
+                                        <img src="<?php echo ! empty($row['profile_photo']) ? 'auth/' . $row['profile_photo'] : 'assets/img/user.jpg'?>"
+                                             alt="<?php echo htmlspecialchars($row['name'])?>"
+                                             style="aspect-ratio: 1 / 1; overflow: hidden; object-fit: cover; height: 100%;"
                                              class="w-100 rounded">
                                     </div>
                                     <div class="col-6 text-center">
-                                        <h5><?= htmlspecialchars($row['name']) ?></h5>
-                                        <?php if (!empty($row['hourly_rate'])): ?>
-                                            <p class="text-muted mb-2">Rp<?= number_format($row['hourly_rate'], 0, ',', '.') ?>/jam</p>
+                                        <h5><?php echo htmlspecialchars($row['name'])?></h5>
+                                        <?php if (! empty($row['hourly_rate'])): ?>
+                                            <p class="text-muted mb-2">Rp<?php echo number_format($row['hourly_rate'], 0, ',', '.')?>/jam</p>
                                         <?php endif; ?>
-                                        <a href="auth/profil_teman.php?id=<?= $row['id'] ?>" class="btn btn-primary">BOOK</a>
+                                        <a href="auth/profil_teman.php?id=<?php echo $row['id']?>" class="btn btn-primary">BOOK</a>
                                     </div>
                                 </div>
                             </div>
@@ -624,101 +629,71 @@ $result = mysqli_query($conn, $query);
         </div>
     </div>
 </div>
-```
+
 
     <div class="komunitas-section" id="komunitas">
-        <div class="container">
-            <h1 class="komunitas-title text-center">KOMUNITAS</h1>
-            <p class="komunitas-desc text-center mt-3">Join komunitas untuk diskusi dan temukan teman sefrekuensi!</p>
-            
-            <div class="row">
-                <div class="col-6 mt-3">
-                    <div class="card position-relative text-white" style="aspect-ratio: 1 / 1; overflow: hidden;">
-                        <img src="assets/img/berani baca.jpeg" class="card-img" alt="Komunitas" style="object-fit: cover; height: 100%;">
-                        
-                        <div class="position-absolute top-0 end-0 m-2">
-                            <a href="#" class="btn btn-yellow btn-sm">Join Sekarang</a>
+    <div class="container">
+        <h1 class="komunitas-title text-center">KOMUNITAS</h1>
+        <p class="komunitas-desc text-center mt-3">Join komunitas untuk diskusi dan temukan teman sefrekuensi!</p>
+        
+        <div class="row">
+            <?php if (!empty($komunitas)): ?>
+                <?php foreach ($komunitas as $community): ?>
+                    <div class="col-6 mt-3">
+                        <div class="card position-relative text-white" style="aspect-ratio: 1 / 1; overflow: hidden;">
+                            <?php if (!empty($community['photo'])): ?>
+                                <img src="<?php echo 'admin/' . htmlspecialchars($community['photo']); ?>" 
+                                     class="card-img" 
+                                     alt="<?php echo htmlspecialchars($community['name']); ?>" 
+                                     style="object-fit: cover; height: 100%;"
+                                     onerror="this.src='assets/img/kom.jpg'">
+                            <?php else: ?>
+                                <img src="assets/img/kom.jpg" 
+                                     class="card-img" 
+                                     alt="<?php echo htmlspecialchars($community['name']); ?>" 
+                                     style="object-fit: cover; height: 100%;">
+                            <?php endif; ?>
+                            
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <a href="komunitas/community_chat.php?community_id=<?php echo $community['id']; ?>" 
+                                   class="btn btn-yellow btn-sm">Join Sekarang</a>
+                            </div>
+                            
+                            <div class="position-absolute bottom-0 w-100 p-4" 
+                                 style="background: rgba(0,0,0,0.4);">
+                                <h5 class="mb-1"><?php echo htmlspecialchars($community['name']); ?></h5>
+                                <p class="mb-0 small">
+                                    <?php 
+                                    if (!empty($community['description'])) {
+                                        // Limit description to 100 characters
+                                        $description = htmlspecialchars($community['description']);
+                                        if (strlen($description) > 100) {
+                                            echo substr($description, 0, 100) . '...';
+                                        } else {
+                                            echo $description;
+                                        }
+                                    } else {
+                                        echo 'Bergabunglah dengan komunitas ini untuk berdiskusi dan menemukan teman sefrekuensi!';
+                                    }
+                                    ?>
+                                </p>
+                            </div>
                         </div>
-                        
-                        <div class="position-absolute bottom-0 w-100 p-4" 
-                        style="background: rgba(0,0,0,0.4);">
-                        <h5 class="mb-1">Berani Baca</h5>
-                        <p class="mb-0 small">
-                            Untuk kalian yang berminat bergabung bersama komunitas Berani Baca pantengin Instagram Berani baca yaa
-                        </p>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="col-12 text-center mt-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Belum ada komunitas yang tersedia.
                     </div>
                 </div>
-                
-                
-                
-            </div>
-            <div class="col-6 mt-3">
-                <div class="card position-relative text-white" style="aspect-ratio: 1 / 1; overflow: hidden;">
-                    <img src="assets/img/cosplay wiwiwiwi.jpeg" class="card-img" alt="Komunitas" style="object-fit: cover; height: 100%;">
-                    
-                    <div class="position-absolute top-0 end-0 m-2">
-                        <a href="#" class="btn btn-yellow btn-sm">Join Sekarang</a>
-                    </div>
-                    
-                    <div class="position-absolute bottom-0 w-100 p-4" 
-                    style="background: rgba(0,0,0,0.4);">
-                    <h5 class="mb-1">Cosplay Jakarta</h5>
-                    <p class="mb-0 small">
-                        One Stop For Event Service, Community, News, & Info for Cosplay, JPop, & Popculture since 2008
-                    </p>
-                </div>
-            </div>
-            
-            
-            
+            <?php endif; ?>
         </div>
-        <div class="col-6 mt-3">
-            <div class="card position-relative text-white" style="aspect-ratio: 1 / 1; overflow: hidden;">
-                <img src="assets/img/anak teknik.jpeg" class="card-img" alt="Komunitas" style="object-fit: cover; height: 100%;">
-                
-                <div class="position-absolute top-0 end-0 m-2">
-                    <a href="#" class="btn btn-yellow btn-sm">Join Sekarang</a>
-                </div>
-                
-                <div class="position-absolute bottom-0 w-100 p-4" 
-                style="background: rgba(0,0,0,0.4);">
-                <h5 class="mb-1">Anak Teknik Indonesia</h5>
-                <p class="mb-0 small">
-                    Terbuka untuk semua mahasiswa atau alumnus FTIK seluruh indonesia ataupun teman-teman yang ingin bagi-bagi ilmunya.
-                </p>
-            </div>
-        </div>
-        
-        
-        
-    </div>
-    <div class="col-6 mt-3">
-        <div class="card position-relative text-white" style="aspect-ratio: 1 / 1; overflow: hidden;">
-            <img src="assets/img/jakarta swim.jpg" class="card-img" alt="Komunitas" style="object-fit: cover; height: 100%;">
-            
-            <div class="position-absolute top-0 end-0 m-2">
-                <a href="#" class="btn btn-yellow btn-sm">Join Sekarang</a>
-            </div>
-            
-            <div class="position-absolute bottom-0 w-100 p-4" 
-            style="background: rgba(0,0,0,0.4);">
-            <h5 class="mb-1">Jakarta Swim Community</h5>
-            <p class="mb-0 small">
-                komunitas non profesional untuk umum. keep swimming and you never swim alone. contact : 085693061529.
-            </p>
+
+        <div class="text-end mt-4">
+            <a href="komunitas/index.php" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
         </div>
     </div>
-    
-    
-    
-</div>
-
-</div>
-
-<div class="text-end mt-4">
-    <a href="komunitas/index.php" class="btn btn-yellow">LIHAT LEBIH BANYAK</a>
-</div>
-</div>
 </div>
 
 <footer class="footer mt-5">
@@ -727,7 +702,7 @@ $result = mysqli_query($conn, $query);
             <h2>BUTUH<br>TEMAN</h2>
             <p>Di tengah kesibukan dunia modern, kami memahami sulitnya menemukan teman yang punya waktu luang. Karena itu, kami menjadi jembatan untuk menghubungkan orang-orang yang membutuhkan kebersamaan dengan teman yang siap hadir.</p>
         </div>
-        
+
         <div class="footer-section">
             <h3>Navigasi</h3>
             <ul>
@@ -737,7 +712,7 @@ $result = mysqli_query($conn, $query);
                 <li><a href="#komunitas">Komunitas</a></li>
             </ul>
         </div>
-        
+
         <div class="footer-section">
             <h3>Kontak Kami</h3>
             <div class="contact-item">
@@ -753,7 +728,7 @@ $result = mysqli_query($conn, $query);
                 <span>butuhteman@gmail.com</span>
             </div>
         </div>
-        
+
         <div class="footer-section">
             <h3>Ikuti Kami</h3>
             <div class="social-links">
@@ -769,7 +744,7 @@ $result = mysqli_query($conn, $query);
             </div>
         </div>
     </div>
-    
+
     <div class="footer-bottom">
         © 2025 BUTUH TEMAN - All Rights Reserved.
     </div>

@@ -236,6 +236,13 @@ if ($stmt = mysqli_prepare($conn, $current_user_query)) {
             height: 50px;
             border-radius: 50%;
         }
+
+        .booking-item img{
+            height: 100px;
+            width: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -268,7 +275,7 @@ if ($stmt = mysqli_prepare($conn, $current_user_query)) {
                 <!-- Jika user login -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?php echo ! empty($user_session['profile_photo']) ? $user_session['profile_photo'] : 'assets/img/default-user.png' ?>"
+                        <img src="<?php echo ! empty($user_session['profile_photo']) ? $user_session['profile_photo'] : '../assets/img/user.jpg' ?>"
                         alt="profile"
                         class="rounded-circle me-2"
                         width="35" height="35"
@@ -443,7 +450,7 @@ if ($stmt = mysqli_prepare($conn, $current_user_query)) {
                                         Rp <?php echo number_format($booking['total_price'], 0, ',', '.'); ?>
                                     </p>
                                     
-                                    <?php if ($booking['status'] == 'pending' && $time_remaining > 0): ?>
+                                    <!-- <?php if ($booking['status'] == 'pending' && $time_remaining > 0): ?>
                                         <p class="mb-0 small time-remaining <?php echo $hours_remaining < 24 ? 'urgent' : ''; ?>">
                                             <i class="bi bi-alarm"></i>
                                             Menunggu konfirmasi: <?php echo $hours_remaining; ?> jam lagi
@@ -451,7 +458,7 @@ if ($stmt = mysqli_prepare($conn, $current_user_query)) {
                                                 <br><small class="text-danger">Teman harus segera konfirmasi!</small>
                                             <?php endif; ?>
                                         </p>
-                                    <?php endif; ?>
+                                    <?php endif; ?> -->
                                 </div>
                             </div>
                             <div class="text-end">

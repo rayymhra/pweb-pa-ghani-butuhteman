@@ -95,7 +95,7 @@ if ($stmt = mysqli_prepare($conn, $conversations_query)) {
             <div class="text-center mt-5">
                 <i class="bi bi-chat-dots" style="font-size: 3rem; color: #ccc;"></i>
                 <p class="text-muted mt-3">Belum ada percakapan</p>
-                <a href="../index.php#cari-teman" class="btn btn-primary">Cari Teman</a>
+                <!-- <a href="../index.php#cari-teman" class="btn btn-primary">Cari Teman</a> -->
             </div>
         <?php else: ?>
             <div class="list-group mt-3">

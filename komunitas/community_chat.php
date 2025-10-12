@@ -1,9 +1,147 @@
+<?php
+session_start();
+require_once '../auth/config.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['user'])) {
+    header("Location: ../auth/login.php");
+    exit();
+}
+
+$user_session = $_SESSION['user'];
+$current_user_id = $user_session['id'];
+$current_user_name = $user_session['name'];
+$current_user_photo = !empty($user_session['profile_photo']) ? $user_session['profile_photo'] : '../assets/img/default-user.png';
+
+// Get community ID from URL
+if (!isset($_GET['community_id'])) {
+    die("Community ID tidak valid");
+}
+
+$community_id = intval($_GET['community_id']);
+
+// Get community data
+$community_query = "SELECT c.*, u.name as creator_name, 
+                   COUNT(cm.id) as member_count
+                   FROM communities c 
+                   LEFT JOIN users u ON c.created_by = u.id 
+                   LEFT JOIN community_memberships cm ON c.id = cm.community_id 
+                   WHERE c.id = ? 
+                   GROUP BY c.id";
+
+$community = null;
+if ($stmt = mysqli_prepare($conn, $community_query)) {
+    mysqli_stmt_bind_param($stmt, "i", $community_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $community = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+}
+
+if (!$community) {
+    die("Komunitas tidak ditemukan");
+}
+
+// Check if user is a member of this community
+$is_member_query = "SELECT id, role FROM community_memberships WHERE community_id = ? AND user_id = ?";
+$is_member = false;
+$user_role = 'non-member';
+
+if ($stmt = mysqli_prepare($conn, $is_member_query)) {
+    mysqli_stmt_bind_param($stmt, "ii", $community_id, $current_user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    if ($membership = mysqli_fetch_assoc($result)) {
+        $is_member = true;
+        $user_role = $membership['role'];
+    }
+    mysqli_stmt_close($stmt);
+}
+
+// Handle join community
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['join_community'])) {
+    $join_query = "INSERT INTO community_memberships (community_id, user_id, role) VALUES (?, ?, 'member')";
+    if ($stmt = mysqli_prepare($conn, $join_query)) {
+        mysqli_stmt_bind_param($stmt, "ii", $community_id, $current_user_id);
+        mysqli_stmt_execute($stmt);
+        $is_member = true;
+        $user_role = 'member';
+        $_SESSION['join_success'] = "Berhasil bergabung dengan komunitas!";
+        header("Location: community_chat.php?community_id=" . $community_id);
+        exit();
+    }
+}
+
+// Handle sending messages
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message']) && $is_member) {
+    $message = trim($_POST['message']);
+    if (!empty($message)) {
+        $insert_message = "INSERT INTO community_messages (community_id, user_id, message) VALUES (?, ?, ?)";
+        if ($stmt = mysqli_prepare($conn, $insert_message)) {
+            mysqli_stmt_bind_param($stmt, "iis", $community_id, $current_user_id, $message);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+            
+            // REDIRECT AFTER POST to prevent resubmission
+            header("Location: community_chat.php?community_id=" . $community_id);
+            exit();
+        }
+    }
+}
+
+// Get community members
+$members_query = "SELECT u.id, u.name, u.profile_photo, cm.role 
+                 FROM community_memberships cm 
+                 JOIN users u ON cm.user_id = u.id 
+                 WHERE cm.community_id = ? 
+                 ORDER BY 
+                     CASE cm.role 
+                         WHEN 'owner' THEN 1 
+                         WHEN 'admin' THEN 2 
+                         ELSE 3 
+                     END,
+                     cm.joined_at ASC";
+
+$members = [];
+if ($stmt = mysqli_prepare($conn, $members_query)) {
+    mysqli_stmt_bind_param($stmt, "i", $community_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $members = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    mysqli_stmt_close($stmt);
+}
+
+// Get messages (everyone can see messages, even non-members)
+$messages_query = "SELECT cm.*, u.name as user_name, u.profile_photo 
+                  FROM community_messages cm 
+                  JOIN users u ON cm.user_id = u.id 
+                  WHERE cm.community_id = ? 
+                  ORDER BY cm.created_at ASC 
+                  LIMIT 100";
+
+$messages = [];
+if ($stmt = mysqli_prepare($conn, $messages_query)) {
+    mysqli_stmt_bind_param($stmt, "i", $community_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $messages = mysqli_fetch_all($result, MYSQLI_ASSOC);
+    mysqli_stmt_close($stmt);
+}
+
+// Determine the previous page for the back button
+$previous_page = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '../komunitas/index.php';
+// Make sure we don't redirect to the same page
+if (strpos($previous_page, 'community_chat.php') !== false) {
+    $previous_page = '../komunitas/index.php';
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Komunitas - Butuh Teman</title>
+    <title><?php echo htmlspecialchars($community['name']); ?> - Butuh Teman</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -190,15 +328,35 @@
             font-size: 1.1rem;
         }
         
+        .member-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
         .member-name {
             flex: 1;
             font-weight: 500;
         }
         
-        .member-status {
+        .member-role {
             font-size: 0.8rem;
             color: #666;
             font-style: italic;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #f0f0f0;
+        }
+        
+        .role-owner {
+            background: #ffd700;
+            color: #000;
+        }
+        
+        .role-admin {
+            background: #4CAF50;
+            color: white;
         }
         
         /* Chat Area */
@@ -361,6 +519,11 @@
             transform: scale(0.95);
         }
         
+        .send-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
         /* Join Overlay */
         .join-overlay {
             position: absolute;
@@ -460,6 +623,38 @@
                 font-size: 1rem;
             }
         }
+
+        /* Back Button Styles */
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.back-btn:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+/* Adjust chat header info to accommodate back button */
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.chat-title {
+    flex: 1;
+}
     </style>
 </head>
 <body>
@@ -472,10 +667,12 @@
             </div>
             
             <div class="group-info-sidebar">
-                <img src="https://via.placeholder.com/60/315DB4/FFFFFF?text=GP" alt="Group Avatar" class="group-avatar-sidebar">
+                <img src="<?php echo !empty($community['photo']) ? '../admin/' . htmlspecialchars($community['photo']) : '../assets/img/kom.jpg'; ?>" 
+                     alt="<?php echo htmlspecialchars($community['name']); ?>" 
+                     class="group-avatar-sidebar">
                 <div class="group-details-sidebar">
-                    <h6>My Group</h6>
-                    <p>5 members</p>
+                    <h6><?php echo htmlspecialchars($community['name']); ?></h6>
+                    <p><?php echo count($members); ?> members</p>
                 </div>
             </div>
             
@@ -488,34 +685,34 @@
                 <div class="sidebar-section">
                     <h6>Deskripsi Grup</h6>
                     <div class="description-text">
-                        Grup untuk berbagi cerita dan pengalaman sehari-hari. Mari jaga kerukunan dan saling mendukung satu sama lain.
+                        <?php echo !empty($community['description']) ? htmlspecialchars($community['description']) : 'Bergabunglah dengan komunitas ini untuk berdiskusi dan menemukan teman sefrekuensi!'; ?>
                     </div>
                 </div>
                 
                 <div class="sidebar-section">
-                    <h6>Anggota Grup (5)</h6>
+                    <h6>Anggota Grup (<?php echo count($members); ?>)</h6>
                     <ul class="member-list">
-                        <li class="member-item">
-                            <div class="member-avatar">Y</div>
-                            <div class="member-name">You</div>
-                            <div class="member-status">Admin</div>
-                        </li>
-                        <li class="member-item">
-                            <div class="member-avatar">O</div>
-                            <div class="member-name">*.osaa *</div>
-                        </li>
-                        <li class="member-item">
-                            <div class="member-avatar">P</div>
-                            <div class="member-name">*.pitaa *</div>
-                        </li>
-                        <li class="member-item">
-                            <div class="member-avatar">G</div>
-                            <div class="member-name">gw</div>
-                        </li>
-                        <li class="member-item">
-                            <div class="member-avatar">L</div>
-                            <div class="member-name">love</div>
-                        </li>
+                        <?php foreach ($members as $member): ?>
+                            <li class="member-item">
+                                <div class="member-avatar">
+                                    <?php if (!empty($member['profile_photo'])): ?>
+                                        <img src="<?php echo htmlspecialchars($member['profile_photo']); ?>" 
+                                             alt="<?php echo htmlspecialchars($member['name']); ?>"
+                                             onerror="this.style.display='none'; this.parentElement.innerHTML='<?php echo substr($member['name'], 0, 1); ?>'">
+                                    <?php else: ?>
+                                        <?php echo substr($member['name'], 0, 1); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="member-name"><?php echo htmlspecialchars($member['name']); ?></div>
+                                <div class="member-role <?php echo 'role-' . $member['role']; ?>">
+                                    <?php 
+                                    if ($member['role'] === 'owner') echo 'Pendiri';
+                                    elseif ($member['role'] === 'admin') echo 'Admin';
+                                    else echo 'Anggota';
+                                    ?>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
                     </ul>
                 </div>
             </div>
@@ -524,48 +721,80 @@
         <!-- Chat Area -->
         <div class="chat-area">
             <!-- Join Overlay (akan hilang setelah join) -->
+            <?php if (!$is_member): ?>
             <div class="join-overlay" id="joinOverlay">
                 <div class="join-content">
                     <i class="fas fa-lock fa-3x mb-3" style="color: var(--primary-color);"></i>
-                    <h3>Bergabung untuk Melihat Percakapan</h3>
-                    <p>Anda perlu bergabung dengan grup ini untuk dapat melihat dan berpartisipasi dalam percakapan.</p>
-                    <button class="btn-join" id="joinFromOverlay">
-                        <i class="fas fa-sign-in-alt me-2"></i> Bergabung Sekarang
-                    </button>
+                    <h3>Bergabung untuk chat</h3>
+                    <p>Anda perlu bergabung dengan grup ini untuk dapat berpartisipasi dalam percakapan.</p>
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="join_community" value="1">
+                        <button type="submit" class="btn-join">
+                            <i class="fas fa-sign-in-alt me-2"></i> Bergabung Sekarang
+                        </button>
+                    </form>
                 </div>
             </div>
+            <?php endif; ?>
             
             <!-- Chat Header -->
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <button class="d-md-none" id="toggleSidebar">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <img src="https://via.placeholder.com/45/315DB4/FFFFFF?text=GP" alt="Group Avatar" class="chat-avatar">
-                    <div class="chat-title">
-                        <h6>My Group</h6>
-                        <p>5 members</p>
-                    </div>
-                </div>
-                <div class="chat-actions">
-                    <button id="searchBtn" title="Search">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </div>
+<div class="chat-header">
+    <div class="chat-header-info">
+        <button class="d-md-none" id="toggleSidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+        <!-- Back Button -->
+        <button class="back-btn me-2" onclick="goBack()" title="Kembali">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <img src="<?php echo !empty($community['photo']) ? '../admin/' . htmlspecialchars($community['photo']) : 'https://via.placeholder.com/45/315DB4/FFFFFF?text=GP'; ?>" 
+             alt="<?php echo htmlspecialchars($community['name']); ?>" 
+             class="chat-avatar"
+             onerror="this.src='https://via.placeholder.com/45/315DB4/FFFFFF?text=GP'">
+        <div class="chat-title">
+            <h6><?php echo htmlspecialchars($community['name']); ?></h6>
+            <p><?php echo count($members); ?> members</p>
+        </div>
+    </div>
+    <div class="chat-actions">
+        <button id="searchBtn" title="Search">
+            <i class="fas fa-search"></i>
+        </button>
+    </div>
+</div>
             
             <!-- Messages Container -->
             <div class="messages-container" id="messagesContainer">
-                <!-- Messages will be loaded here after joining -->
+                <?php foreach ($messages as $message): ?>
+                    <div class="message <?php echo $message['user_id'] == $current_user_id ? 'sent' : 'received'; ?>">
+                        <?php if ($message['user_id'] != $current_user_id): ?>
+                            <div class="message-sender"><?php echo htmlspecialchars($message['user_name']); ?></div>
+                        <?php endif; ?>
+                        <p class="message-content"><?php echo htmlspecialchars($message['message']); ?></p>
+                        <div class="message-time">
+                            <?php echo date('H:i', strtotime($message['created_at'])); ?>
+                            <?php if ($message['user_id'] == $current_user_id): ?>✓<?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
             
             <!-- Chat Input Area -->
             <div class="chat-input-area">
-                <button class="chat-input-btn"><i class="fas fa-paperclip"></i></button>
-                <input type="text" class="chat-input" placeholder="Type a message" id="messageInput" disabled>
-                <button class="send-btn" id="sendMessage" disabled>
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                <?php if ($is_member): ?>
+                    <form method="POST" class="d-flex w-100" id="messageForm">
+                        <input type="text" class="chat-input" name="message" placeholder="Type a message" id="messageInput" required>
+                        <input type="hidden" name="send_message" value="1">
+                        <button type="submit" class="send-btn" id="sendMessage">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <input type="text" class="chat-input" placeholder="Join group to send messages" disabled>
+                    <button class="send-btn" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -573,147 +802,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Status keanggotaan grup (default: belum bergabung)
-        let isMember = false;
-        
-        // Data pesan contoh (dari gambar cht.jpg)
-        const sampleMessages = [
-            {
-                text: "h y",
-                sender: "*.osaa *,*.pitaa *, gw, love, You",
-                time: "7:15 pm",
-                type: "received"
-            },
-            {
-                text: "pls osisnya lamain",
-                sender: "*.pitaa *",
-                time: "7:15 pm",
-                type: "received"
-            },
-            {
-                text: "iyaa plss",
-                sender: "You",
-                time: "7:15 pm",
-                type: "sent"
-            },
-            {
-                text: "harusnya si ngga yaa, terus abis debat pasti ga langsung masuk kelas bilo",
-                sender: "*.osaa *",
-                time: "7:16 pm",
-                type: "received"
-            },
-            {
-                text: "aamiin ya allah",
-                sender: "*.osaa *",
-                time: "7:16 pm",
-                type: "received"
-            },
-            {
-                text: "minggu depan aja udhh",
-                sender: "*.osaa *",
-                time: "7:16 pm",
-                type: "received"
-            },
-            {
-                text: "ini orang orang apesi 😊",
-                sender: "*.osaa *",
-                time: "8:02 pm",
-                type: "received"
-            },
-          
-            {
-                text: "iya ajgg 💬️",
-                sender: "You",
-                time: "8:04 pm",
-                type: "sent"
-            },
-            {
-                text: "ngakak bgt",
-                sender: "You",
-                time: "8:04 pm",
-                type: "sent"
-            },
-            {
-                text: "minggu depan aja udhh",
-                sender: "*.pitaa *",
-                time: "8:04 pm",
-                type: "received"
-            },
-            {
-                text: "AAMIIN",
-                sender: "*.pitaa *",
-                time: "8:04 pm",
-                type: "received"
-            }
-        ];
-        
-        // Fungsi untuk bergabung dengan grup
-        function joinGroup() {
-            isMember = true;
-            document.getElementById('joinOverlay').style.display = 'none';
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendMessage').disabled = false;
-            
-            // Tampilkan pesan contoh
-            loadMessages();
+        // Auto refresh messages every 3 seconds
+        function refreshMessages() {
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newMessages = doc.querySelectorAll('#messagesContainer .message');
+                    const currentMessages = document.querySelectorAll('#messagesContainer .message');
+                    
+                    // Only update if there are new messages
+                    if (newMessages.length > currentMessages.length) {
+                        document.getElementById('messagesContainer').innerHTML = doc.getElementById('messagesContainer').innerHTML;
+                        scrollToBottom();
+                    }
+                })
+                .catch(error => console.error('Error refreshing messages:', error));
         }
-        
-        // Fungsi untuk memuat pesan
-        function loadMessages() {
+
+        // Scroll to bottom of messages
+        function scrollToBottom() {
             const messagesContainer = document.getElementById('messagesContainer');
-            messagesContainer.innerHTML = '';
-            
-            sampleMessages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message', msg.type);
-                
-                if (msg.type === 'received') {
-                    messageDiv.innerHTML = `
-                        <div class="message-sender">${msg.sender}</div>
-                        <p class="message-content">${msg.text}</p>
-                        <div class="message-time">${msg.time}</div>
-                    `;
-                } else {
-                    messageDiv.innerHTML = `
-                        <p class="message-content">${msg.text}</p>
-                        <div class="message-time">${msg.time} ✓</div>
-                    `;
-                }
-                
-                messagesContainer.appendChild(messageDiv);
-            });
-            
-            // Scroll ke bawah
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-        
-        // Fungsi untuk mengirim pesan
-        function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const messageText = messageInput.value.trim();
-            
-            if (messageText === '') return;
-            
-            const messagesContainer = document.getElementById('messagesContainer');
-            const now = new Date();
-            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')} ${now.getHours() >= 12 ? 'pm' : 'am'}`;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'sent');
-            messageDiv.innerHTML = `
-                <p class="message-content">${messageText}</p>
-                <div class="message-time">${timeString} ✓</div>
-            `;
-            messagesContainer.appendChild(messageDiv);
-            
-            // Kosongkan input
-            messageInput.value = '';
-            
-            // Scroll ke bawah
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        
-        // Fungsi untuk mencari pesan
+
+        // Search messages
         function searchMessages() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const messages = document.querySelectorAll('.message');
@@ -728,8 +842,8 @@
                 }
             });
         }
-        
-        // Toggle sidebar di mobile
+
+        // Toggle sidebar on mobile
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
             const chatArea = document.querySelector('.chat-area');
@@ -737,33 +851,45 @@
             sidebar.classList.toggle('active');
             chatArea.classList.toggle('hidden');
         }
-        
+
         // Event Listeners
-        document.getElementById('joinFromOverlay').addEventListener('click', joinGroup);
-        document.getElementById('sendMessage').addEventListener('click', sendMessage);
         document.getElementById('searchInput').addEventListener('input', searchMessages);
         document.getElementById('searchBtn').addEventListener('click', function() {
             document.getElementById('searchInput').focus();
         });
         document.getElementById('toggleSidebar').addEventListener('click', toggleSidebar);
-        
-        document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-        
+
+        // Auto-refresh messages
+        setInterval(refreshMessages, 3000);
+
+        // Scroll to bottom on page load
+        window.addEventListener('load', scrollToBottom);
+
         // Responsive behavior
         window.addEventListener('resize', function() {
             const sidebar = document.querySelector('.sidebar');
             const chatArea = document.querySelector('.chat-area');
             
             if (window.innerWidth > 768) {
-                // Desktop view
                 sidebar.classList.add('active');
                 chatArea.classList.remove('hidden');
             }
         });
+
+        // Go back to previous page
+function goBack() {
+    // Use the PHP variable for the back URL
+    window.location.href = '<?php echo $previous_page; ?>';
+}
+
+// Alternative: Use browser history if available
+function goBackAlternative() {
+    if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+        window.history.back();
+    } else {
+        window.location.href = '../komunitas/index.php';
+    }
+}
     </script>
 </body>
 </html>

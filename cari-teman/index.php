@@ -263,7 +263,7 @@ $user_id = $user_session['id'];
                 <!-- Jika user login -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="<?php echo ! empty($user_session['profile_photo']) ? '../auth/' . $user_session['profile_photo'] : 'assets/img/default-user.png' ?>"
+                        <img src="<?php echo ! empty($user_session['profile_photo']) ? '../auth/' . $user_session['profile_photo'] : 'assets/img/user.jpg' ?>"
                         alt="profile"
                         class="rounded-circle me-2"
                         width="35" height="35"
