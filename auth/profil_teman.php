@@ -187,9 +187,12 @@ if (isset($_FILES['gallery_photos'])) {
     }
   }
     
-    // Redirect to avoid form resubmission
+// Only redirect if it's NOT a booking-related submission
+if (!isset($_POST['submit_booking']) && !isset($_POST['update_booking_status'])) {
+    // Redirect to avoid form resubmission for other forms
     header("Location: profil_teman.php?id=" . $profile_id);
     exit;
+}
 }
 
 // Query untuk mengambil data user dan friend profile
@@ -245,32 +248,93 @@ if (!$is_owner && isset($_SESSION['user']) && isset($_POST['submit_booking'])) {
     $booking_date = mysqli_real_escape_string($conn, $_POST['booking_date']);
     $booking_time = mysqli_real_escape_string($conn, $_POST['booking_time']);
     $duration = intval($_POST['duration']);
-    $notes = mysqli_real_escape_string($conn, $_POST['notes']);
+    $notes = mysqli_real_escape_string($conn, $_POST['notes'] ?? '');
     
-    // Calculate start and end datetime
-    $start_datetime = $booking_date . ' ' . $booking_time . ':00';
-    $end_datetime = date('Y-m-d H:i:s', strtotime($start_datetime . ' + ' . $duration . ' hours'));
-    
-    // Calculate total price
-    $total_price = $user['hourly_rate'] * $duration;
-    
-    // Insert booking into database
-    $insert_query = "INSERT INTO bookings (client_id, friend_id, start_datetime, end_datetime, total_price, status) 
-                     VALUES (?, ?, ?, ?, ?, 'pending')";
-    
-    if ($stmt = mysqli_prepare($conn, $insert_query)) {
-        mysqli_stmt_bind_param($stmt, "iissd", $client_id, $friend_id, $start_datetime, $end_datetime, $total_price);
-        
-        if (mysqli_stmt_execute($stmt)) {
-            $booking_success = true;
-            $booking_message = "Booking berhasil dibuat! Menunggu konfirmasi dari " . htmlspecialchars($user['name']);
-        } else {
-            $booking_error = "Gagal membuat booking. Silakan coba lagi.";
-        }
-        mysqli_stmt_close($stmt);
+    // Validate inputs
+    if (empty($booking_date) || empty($booking_time) || $duration <= 0) {
+        $booking_error = "Harap isi semua field dengan benar!";
     } else {
-        $booking_error = "Terjadi kesalahan sistem. Silakan coba lagi.";
+        // Calculate start and end datetime
+        $start_datetime = $booking_date . ' ' . $booking_time . ':00';
+        $end_datetime = date('Y-m-d H:i:s', strtotime($start_datetime . ' + ' . $duration . ' hours'));
+        
+        // Check if friend is available
+        if (!$user['available']) {
+            $booking_error = "Teman ini sedang tidak tersedia untuk booking!";
+        } else {
+            // Calculate total price
+            $total_price = $user['hourly_rate'] * $duration;
+            
+            // Check for overlapping bookings
+            $check_overlap_query = "SELECT id FROM bookings WHERE friend_id = ? AND status IN ('pending', 'accepted') AND ((start_datetime <= ? AND end_datetime >= ?) OR (start_datetime <= ? AND end_datetime >= ?))";
+            
+            if ($stmt = mysqli_prepare($conn, $check_overlap_query)) {
+                mysqli_stmt_bind_param($stmt, "issss", $friend_id, $end_datetime, $start_datetime, $start_datetime, $end_datetime);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                
+                if (mysqli_num_rows($result) > 0) {
+                    $booking_error = "Waktu booking bertabrakan dengan booking lain!";
+                } else {
+                    // Insert booking into database
+                    $insert_query = "INSERT INTO bookings (client_id, friend_id, start_datetime, end_datetime, total_price, status) 
+                                     VALUES (?, ?, ?, ?, ?, 'pending')";
+                    
+                    if ($stmt = mysqli_prepare($conn, $insert_query)) {
+                        mysqli_stmt_bind_param($stmt, "iissd", $client_id, $friend_id, $start_datetime, $end_datetime, $total_price);
+                        
+                        if (mysqli_stmt_execute($stmt)) {
+                            $booking_success = true;
+                            $booking_message = "Booking berhasil dibuat! Menunggu konfirmasi dari " . htmlspecialchars($user['name']);
+                            
+                            // Clear form
+                            unset($_POST);
+                        } else {
+                            $booking_error = "Gagal membuat booking. Silakan coba lagi.";
+                        }
+                        mysqli_stmt_close($stmt);
+                    } else {
+                        $booking_error = "Terjadi kesalahan sistem. Silakan coba lagi.";
+                    }
+                }
+                // mysqli_stmt_close($stmt);
+            }
+        }
     }
+}
+
+// Handle booking status updates
+if ($is_owner && isset($_POST['update_booking_status'])) {
+    $booking_id = intval($_POST['booking_id']);
+    $status = mysqli_real_escape_string($conn, $_POST['status']);
+    
+    // Verify that the booking belongs to this friend
+    $verify_query = "SELECT id FROM bookings WHERE id = ? AND friend_id = ?";
+    if ($stmt = mysqli_prepare($conn, $verify_query)) {
+        mysqli_stmt_bind_param($stmt, "ii", $booking_id, $profile_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if (mysqli_num_rows($result) > 0) {
+            // Update booking status
+            $update_query = "UPDATE bookings SET status = ? WHERE id = ?";
+            if ($stmt = mysqli_prepare($conn, $update_query)) {
+                mysqli_stmt_bind_param($stmt, "si", $status, $booking_id);
+                if (mysqli_stmt_execute($stmt)) {
+                    $_SESSION['success_message'] = "Status booking berhasil diperbarui!";
+                } else {
+                    $_SESSION['error_message'] = "Gagal memperbarui status booking.";
+                }
+                mysqli_stmt_close($stmt);
+            }
+        } else {
+            $_SESSION['error_message'] = "Booking tidak ditemukan atau tidak memiliki akses.";
+        }
+        // mysqli_stmt_close($stmt);
+    }
+    
+    header("Location: profil_teman.php?id=" . $profile_id);
+    exit;
 }
 
 // Get booking history for profile owner
@@ -1135,34 +1199,55 @@ body { background-color: #f8f9fa; }
       <form method="POST" id="formBooking">
         <input type="hidden" name="submit_booking" value="1">
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Tarif per Jam</label>
-            <input type="text" class="form-control" value="Rp <?php echo !empty($user['hourly_rate']) ? number_format($user['hourly_rate'], 0, ',', '.') : '0'; ?>" readonly>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Tanggal Booking</label>
-            <input type="date" name="booking_date" class="form-control" id="tglBooking" min="<?php echo date('Y-m-d'); ?>" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Waktu Booking</label>
-            <input type="time" name="booking_time" class="form-control" id="jamBooking" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Durasi (jam)</label>
-            <input type="number" name="duration" class="form-control" id="durasiBooking" min="1" value="1" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Catatan (opsional)</label>
-            <textarea name="notes" class="form-control" id="catatanBooking" rows="3" placeholder="Tuliskan catatanmu..."></textarea>
-          </div>
+          <!-- Friend Information -->
           <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Total: 
-            <span id="totalPrice">Rp <?php echo !empty($user['hourly_rate']) ? number_format($user['hourly_rate'], 0, ',', '.') : '0'; ?></span>
+            <div class="d-flex align-items-center">
+              <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : "assets/img/user.jpg" ?>" 
+                   class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
+              <div>
+                <strong><?php echo htmlspecialchars($user['name']); ?></strong><br>
+                <small>Tarif: Rp <?php echo !empty($user['hourly_rate']) ? number_format($user['hourly_rate'], 0, ',', '.') : '0'; ?>/jam</small>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Tanggal Booking *</label>
+              <input type="date" name="booking_date" class="form-control" id="tglBooking" min="<?php echo date('Y-m-d'); ?>" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Waktu Booking *</label>
+              <input type="time" name="booking_time" class="form-control" id="jamBooking" min="08:00" max="22:00" required>
+              <small class="text-muted">Pukul 08:00 - 22:00</small>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Durasi (jam) *</label>
+            <input type="number" name="duration" class="form-control" id="durasiBooking" min="1" max="8" value="1" required>
+            <small class="text-muted">Maksimal 8 jam per booking</small>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Catatan untuk <?php echo htmlspecialchars($user['name']); ?> (opsional)</label>
+            <textarea name="notes" class="form-control" id="catatanBooking" rows="3" placeholder="Tuliskan aktivitas yang ingin dilakukan atau kebutuhan khusus..."></textarea>
+          </div>
+          
+          <!-- Price Summary -->
+          <div class="alert alert-warning">
+            <div class="d-flex justify-content-between">
+              <span><strong>Total Biaya:</strong></span>
+              <span id="totalPrice" class="fw-bold">Rp <?php echo !empty($user['hourly_rate']) ? number_format($user['hourly_rate'], 0, ',', '.') : '0'; ?></span>
+            </div>
+            <small class="text-muted">* Pembayaran dilakukan secara langsung saat bertemu</small>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-booking rounded-pill"><i class="bi bi-send"></i> Konfirmasi Booking</button>
+          <button type="submit" class="btn btn-booking rounded-pill">
+            <i class="bi bi-send"></i> Konfirmasi Booking
+          </button>
         </div>
       </form>
     </div>
@@ -1172,11 +1257,14 @@ body { background-color: #f8f9fa; }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+
 // Calculate total price based on duration
 <?php if (!$is_owner && isset($_SESSION['user'])): ?>
 const hourlyRate = <?php echo $user['hourly_rate'] ?? 0; ?>;
 const durasiInput = document.getElementById('durasiBooking');
 const totalPriceSpan = document.getElementById('totalPrice');
+const bookingDateInput = document.getElementById('tglBooking');
+const bookingTimeInput = document.getElementById('jamBooking');
 
 function updateTotalPrice() {
     const duration = parseInt(durasiInput.value) || 1;
@@ -1184,11 +1272,69 @@ function updateTotalPrice() {
     totalPriceSpan.textContent = 'Rp ' + total.toLocaleString('id-ID');
 }
 
-durasiInput.addEventListener('input', updateTotalPrice);
-updateTotalPrice(); // Initial calculation
+function validateBookingTime() {
+    const selectedTime = bookingTimeInput.value;
+    if (selectedTime) {
+        const [hours] = selectedTime.split(':').map(Number);
+        if (hours < 8 || hours > 22) {
+            bookingTimeInput.setCustomValidity('Waktu booking harus antara 08:00 - 22:00');
+        } else {
+            bookingTimeInput.setCustomValidity('');
+        }
+    }
+}
+
+function validateDuration() {
+    const duration = parseInt(durasiInput.value) || 0;
+    if (duration < 1 || duration > 8) {
+        durasiInput.setCustomValidity('Durasi harus antara 1-8 jam');
+    } else {
+        durasiInput.setCustomValidity('');
+    }
+}
+
+// Event listeners
+durasiInput.addEventListener('input', function() {
+    validateDuration();
+    updateTotalPrice();
+});
+
+bookingTimeInput.addEventListener('change', validateBookingTime);
 
 // Set minimum date to today
-document.getElementById('tglBooking').min = new Date().toISOString().split('T')[0];
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+bookingDateInput.min = today.toISOString().split('T')[0];
+
+// Set default time to next hour
+const nextHour = new Date();
+nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
+bookingTimeInput.value = nextHour.toTimeString().slice(0, 5);
+
+// Initial calculations
+updateTotalPrice();
+validateDuration();
+
+// Form submission handling
+document.getElementById('formBooking')?.addEventListener('submit', function(e) {
+    const duration = parseInt(durasiInput.value);
+    const bookingDate = new Date(bookingDateInput.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (bookingDate < today) {
+        e.preventDefault();
+        Swal.fire('Error', 'Tanggal booking tidak valid!', 'error');
+        return;
+    }
+    
+    if (duration < 1 || duration > 8) {
+        e.preventDefault();
+        Swal.fire('Error', 'Durasi harus antara 1-8 jam!', 'error');
+        return;
+    }
+});
 <?php endif; ?>
 
 

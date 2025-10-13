@@ -11,7 +11,7 @@ $query = "SELECT u.id, u.name, u.username, u.profile_photo, u.bio, u.location as
                  u.hobby, fp.hourly_rate, fp.location as friend_location, fp.available
           FROM users u 
           INNER JOIN friend_profiles fp ON u.id = fp.user_id 
-          WHERE u.role = 'Friend' AND fp.available = 1";
+          WHERE u.role = 'Friend'";
 
 // Add search filters
 if (!empty($search_query)) {

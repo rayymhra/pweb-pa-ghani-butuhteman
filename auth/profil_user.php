@@ -343,7 +343,7 @@ if ($stmt = mysqli_prepare($conn, $current_user_query)) {
         <!-- TAB NAVIGATION -->
         <ul class="nav nav-tabs mt-3">
             <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#about">About</a></li>
-            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#community">Komunitas</a></li>
+            <!-- <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#community">Komunitas</a></li> -->
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#history">Riwayat Booking</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#reviews">Ulasan Saya</a></li>
         </ul>

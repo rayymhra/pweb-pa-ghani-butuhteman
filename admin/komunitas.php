@@ -10,7 +10,7 @@ if (isset($_POST['save'])) {
     $id   = $_POST['id'];
     $name = $conn->real_escape_string($_POST['name']);
     $desc = $conn->real_escape_string($_POST['description']);
-    $created_by = 1; // default user id=1 (bisa diganti session login)
+    $created_by = 3; 
 
     // ====== HANDLE UPLOAD FOTO ======
     $photo_name = "";
